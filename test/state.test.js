@@ -5,6 +5,7 @@ import {
   EMPTY_TRACK_LABEL,
   formatHoverLabel,
   formatProgressText,
+  hasTrackMetadata,
   normalizePlayerState,
 } from "../src/state.js";
 
@@ -17,6 +18,7 @@ test("normalizes missing track metadata into an empty player state", () => {
   assert.equal(state.isPlaying, false);
   assert.equal(state.progressText, "");
   assert.equal(formatHoverLabel(state), EMPTY_TRACK_LABEL);
+  assert.equal(hasTrackMetadata(state), false);
 });
 
 test("trims track metadata and keeps playback fields", () => {
@@ -35,6 +37,7 @@ test("trims track metadata and keeps playback fields", () => {
   assert.equal(state.isPlaying, true);
   assert.equal(state.progressText, "1:12 / 4:03");
   assert.equal(formatHoverLabel(state), "Midnight City - M83");
+  assert.equal(hasTrackMetadata(state), true);
 });
 
 test("formats progress only when both times are available", () => {

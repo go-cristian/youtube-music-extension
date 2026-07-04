@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>YouTube Music Mini Player</title>
+    <link rel="stylesheet" href="./fallback.css">
+  </head>
+  <body>
+    <main class="player">
+      <div class="art" data-role="artwork">YTM</div>
+      <section class="body">
+        <p class="eyebrow">Fallback window</p>
+        <h1 data-role="title">Open YouTube Music</h1>
+        <p data-role="artist">No track loaded</p>
+        <p class="hint" data-role="hint">Document Picture-in-Picture is unavailable, so this regular popup window is controlling your YouTube Music tab.</p>
+        <div class="progress" data-role="progress"></div>
+        <div class="controls">
+          <button data-command="previous">Prev</button>
+          <button class="primary" data-command="playPause">Play</button>
+          <button data-command="next">Next</button>
+        </div>
+        <button class="secondary" data-role="openMusic">Open YouTube Music</button>
+      </section>
+    </main>
+    <script type="module" src="./fallback.js"></script>
+  </body>
+</html>

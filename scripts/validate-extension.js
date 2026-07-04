@@ -2,7 +2,7 @@ import { access, readFile } from "node:fs/promises";
 
 const manifest = JSON.parse(await readFile(new URL("../manifest.json", import.meta.url), "utf8"));
 
-const requiredFiles = [
+const declaredRequiredFiles = [
   "src/background.js",
   "src/content.js",
   "src/bootstrap.js",
@@ -11,17 +11,27 @@ const requiredFiles = [
   "src/state.js",
 ];
 
+const internalRequiredFiles = [
+  "src/fallback.css",
+  "src/fallback.html",
+  "src/fallback.js",
+];
+
 const declaredFiles = new Set([
   manifest.background.service_worker,
   ...manifest.content_scripts.flatMap((script) => [...(script.js ?? []), ...(script.css ?? [])]),
   ...manifest.web_accessible_resources.flatMap((resource) => resource.resources),
 ]);
 
-for (const file of requiredFiles) {
+for (const file of declaredRequiredFiles) {
   if (!declaredFiles.has(file)) {
     throw new Error(`${file} is not declared in manifest.json`);
   }
 
+  await access(new URL(`../${file}`, import.meta.url));
+}
+
+for (const file of internalRequiredFiles) {
   await access(new URL(`../${file}`, import.meta.url));
 }
 

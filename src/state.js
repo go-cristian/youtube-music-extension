@@ -39,3 +39,7 @@ export function formatHoverLabel(state) {
 
   return state.title || state.artist;
 }
+
+export function hasTrackMetadata(state) {
+  return Boolean(state.title || state.artist || state.artworkUrl);
+}

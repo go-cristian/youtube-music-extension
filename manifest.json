@@ -10,7 +10,7 @@
     "service_worker": "src/background.js",
     "type": "module"
   },
-  "permissions": [],
+  "permissions": ["scripting", "tabs"],
   "host_permissions": ["https://music.youtube.com/*"],
   "content_scripts": [
     {
@@ -23,6 +23,8 @@
     {
       "resources": [
         "src/bootstrap.js",
+        "src/content.js",
+        "src/fallback.js",
         "src/playerAdapter.js",
         "src/pip.js",
         "src/state.js"

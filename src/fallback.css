@@ -1,0 +1,90 @@
+body {
+  margin: 0;
+  background: #111318;
+  color: #f6f7fb;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.player {
+  min-height: 100vh;
+}
+
+.art {
+  align-items: center;
+  background: linear-gradient(135deg, #e94f37, #1f8a70);
+  background-position: center;
+  background-size: cover;
+  color: rgba(255, 255, 255, 0.72);
+  display: flex;
+  font-size: 28px;
+  font-weight: 800;
+  height: 165px;
+  justify-content: center;
+  letter-spacing: 0;
+}
+
+.body {
+  padding: 16px;
+}
+
+.eyebrow {
+  color: #ffcc33;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+p {
+  color: #aab2bd;
+  font-size: 13px;
+  margin: 0;
+}
+
+.hint {
+  line-height: 1.4;
+  margin-top: 12px;
+}
+
+.progress {
+  color: #ffcc33;
+  font-size: 12px;
+  min-height: 18px;
+  margin-top: 12px;
+}
+
+.controls {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  margin-top: 14px;
+}
+
+button {
+  background: #262b34;
+  border: 0;
+  border-radius: 8px;
+  color: #f6f7fb;
+  cursor: pointer;
+  font: inherit;
+  padding: 10px;
+}
+
+button.primary {
+  background: #ffcc33;
+  color: #181818;
+  font-weight: 800;
+}
+
+.secondary {
+  margin-top: 10px;
+  width: 100%;
+}

@@ -18,6 +18,33 @@ if (!window.__ytmFloatingPlayerLoaded) {
   };
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === "PING_YTM_FLOATING_PLAYER") {
+      sendResponse({ ok: true });
+      return false;
+    }
+
+    if (message?.type === "GET_YTM_PLAYER_STATE") {
+      sendResponse({ ok: true, state: adapter.getState() });
+      return false;
+    }
+
+    if (message?.type === "YTM_PLAYER_COMMAND") {
+      if (message.command === "playPause") {
+        adapter.togglePlayPause();
+      }
+
+      if (message.command === "previous") {
+        adapter.previous();
+      }
+
+      if (message.command === "next") {
+        adapter.next();
+      }
+
+      window.setTimeout(() => sendResponse({ ok: true, state: adapter.getState() }), 150);
+      return true;
+    }
+
     if (message?.type !== "OPEN_YTM_FLOATING_PLAYER") {
       return false;
     }
