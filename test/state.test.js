@@ -7,6 +7,7 @@ import {
   formatProgressText,
   hasTrackMetadata,
   normalizePlayerState,
+  parseTimeText,
 } from "../src/state.js";
 
 test("normalizes missing track metadata into an empty player state", () => {
@@ -17,6 +18,8 @@ test("normalizes missing track metadata into an empty player state", () => {
   assert.equal(state.artworkUrl, "");
   assert.equal(state.isPlaying, false);
   assert.equal(state.progressText, "");
+  assert.equal(state.currentSeconds, 0);
+  assert.equal(state.durationSeconds, 0);
   assert.equal(formatHoverLabel(state), EMPTY_TRACK_LABEL);
   assert.equal(hasTrackMetadata(state), false);
 });
@@ -36,6 +39,8 @@ test("trims track metadata and keeps playback fields", () => {
   assert.equal(state.artworkUrl, "https://example.test/art.jpg");
   assert.equal(state.isPlaying, true);
   assert.equal(state.progressText, "1:12 / 4:03");
+  assert.equal(state.currentSeconds, 72);
+  assert.equal(state.durationSeconds, 243);
   assert.equal(formatHoverLabel(state), "Midnight City - M83");
   assert.equal(hasTrackMetadata(state), true);
 });
@@ -44,4 +49,10 @@ test("formats progress only when both times are available", () => {
   assert.equal(formatProgressText("1:12", "4:03"), "1:12 / 4:03");
   assert.equal(formatProgressText("1:12", ""), "");
   assert.equal(formatProgressText("", "4:03"), "");
+});
+
+test("parses music time labels into seconds", () => {
+  assert.equal(parseTimeText("1:12"), 72);
+  assert.equal(parseTimeText("1:02:03"), 3723);
+  assert.equal(parseTimeText(""), 0);
 });

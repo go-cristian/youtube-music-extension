@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { readFirstAttribute, readFirstText } from "../src/playerAdapter.js";
+import { readFirstAttribute, readFirstText, seekMediaToSeconds } from "../src/playerAdapter.js";
 
 function element(text = "", attributes = {}) {
   return {
@@ -45,4 +45,15 @@ test("readFirstAttribute returns the first non-empty attribute match", () => {
   });
 
   assert.equal(readFirstAttribute(doc, [".missing-src", ".art"], "src"), "https://example.test/art.jpg");
+});
+
+test("seekMediaToSeconds moves the media element inside its duration", () => {
+  const media = { currentTime: 0, duration: 240 };
+  const doc = documentWithMatches({ "video,audio": media });
+
+  assert.equal(seekMediaToSeconds(doc, 72), true);
+  assert.equal(media.currentTime, 72);
+
+  assert.equal(seekMediaToSeconds(doc, 999), true);
+  assert.equal(media.currentTime, 240);
 });

@@ -61,6 +61,12 @@ p {
   margin-top: 12px;
 }
 
+input[type="range"] {
+  accent-color: #ffcc33;
+  margin-top: 10px;
+  width: 100%;
+}
+
 .controls {
   display: grid;
   gap: 8px;

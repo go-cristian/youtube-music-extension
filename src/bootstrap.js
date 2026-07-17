@@ -10,6 +10,7 @@ if (!window.__ytmFloatingPlayerLoaded) {
     onPlayPause: adapter.togglePlayPause,
     onPrevious: adapter.previous,
     onNext: adapter.next,
+    onSeek: adapter.seekTo,
   });
 
   const refresh = () => {
@@ -41,6 +42,10 @@ if (!window.__ytmFloatingPlayerLoaded) {
         adapter.next();
       }
 
+      if (message.command === "seek") {
+        adapter.seekTo(message.positionSeconds);
+      }
+
       window.setTimeout(() => sendResponse({ ok: true, state: adapter.getState() }), 150);
       return true;
     }
@@ -60,5 +65,5 @@ if (!window.__ytmFloatingPlayerLoaded) {
   });
 
   adapter.subscribe(refresh);
-  window.setInterval(refresh, 3000);
+  window.setInterval(refresh, 1000);
 }

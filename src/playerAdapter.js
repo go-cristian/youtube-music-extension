@@ -96,10 +96,13 @@ function readPlaybackState(doc) {
 function readTimes(doc) {
   const progress = readFirstText(doc, SELECTORS.progress);
   const match = progress.match(/([0-9:]+)\s*\/\s*([0-9:]+)/);
+  const media = findMediaElement(doc);
 
   return {
     currentTime: match?.[1] ?? "",
     duration: match?.[2] ?? "",
+    currentSeconds: media?.currentTime ?? 0,
+    durationSeconds: Number.isFinite(media?.duration) ? media.duration : 0,
   };
 }
 
@@ -107,6 +110,21 @@ function clickFirst(doc, selectors) {
   const element = findFirst(doc, selectors);
   element?.click();
   return Boolean(element);
+}
+
+function findMediaElement(doc) {
+  return doc.querySelector("video,audio");
+}
+
+export function seekMediaToSeconds(doc, seconds) {
+  const media = findMediaElement(doc);
+
+  if (!media || !Number.isFinite(media.duration) || media.duration <= 0) {
+    return false;
+  }
+
+  media.currentTime = Math.max(0, Math.min(seconds, media.duration));
+  return true;
 }
 
 export function createPlayerAdapter(doc = document) {
@@ -121,6 +139,8 @@ export function createPlayerAdapter(doc = document) {
         isPlaying: readPlaybackState(doc),
         currentTime: times.currentTime,
         duration: times.duration,
+        currentSeconds: times.currentSeconds,
+        durationSeconds: times.durationSeconds,
         canUseDocumentPip: "documentPictureInPicture" in window,
       });
     },
@@ -132,6 +152,9 @@ export function createPlayerAdapter(doc = document) {
     },
     next() {
       return clickFirst(doc, SELECTORS.next);
+    },
+    seekTo(seconds) {
+      return seekMediaToSeconds(doc, seconds);
     },
     subscribe(callback) {
       let timeoutId = 0;
