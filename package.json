@@ -1,12 +1,14 @@
 {
   "name": "youtube-music-floating-player",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
+    "assets": "node scripts/generate-store-assets.js",
     "test": "node --test",
     "typecheck": "node --check src/*.js test/*.js",
     "lint": "node --check src/*.js test/*.js",
-    "build": "node scripts/validate-extension.js"
+    "build": "node scripts/validate-extension.js",
+    "package": "node scripts/package-extension.js"
   }
 }

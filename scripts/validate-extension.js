@@ -15,6 +15,10 @@ const declaredRequiredFiles = [
 ];
 
 const internalRequiredFiles = [
+  "assets/icons/icon-16.png",
+  "assets/icons/icon-32.png",
+  "assets/icons/icon-48.png",
+  "assets/icons/icon-128.png",
   "src/fallback.css",
   "src/fallback.html",
   "src/fallback.js",
@@ -40,6 +44,12 @@ for (const file of internalRequiredFiles) {
 
 if (manifest.manifest_version !== 3) {
   throw new Error("manifest_version must be 3");
+}
+
+for (const [size, path] of Object.entries(manifest.icons ?? {})) {
+  if (!path.endsWith(`icon-${size}.png`)) {
+    throw new Error(`manifest icon ${size} must point to icon-${size}.png`);
+  }
 }
 
 console.log("Extension manifest looks valid.");
