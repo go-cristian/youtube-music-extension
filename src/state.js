@@ -32,6 +32,16 @@ function readSeconds(numberValue, textValue) {
   return parseTimeText(textValue);
 }
 
+function normalizeQuickPicks(input = []) {
+  return input
+    .map((item) => ({
+      title: String(item.title ?? "").trim(),
+      artist: String(item.artist ?? "").trim(),
+      artworkUrl: String(item.artworkUrl ?? "").trim(),
+    }))
+    .filter((item) => item.title);
+}
+
 export function normalizePlayerState(input = {}) {
   const title = String(input.title ?? "").trim();
   const artist = String(input.artist ?? "").trim();
@@ -49,6 +59,7 @@ export function normalizePlayerState(input = {}) {
     progressText: formatProgressText(currentTime, duration),
     currentSeconds,
     durationSeconds,
+    quickPicks: normalizeQuickPicks(input.quickPicks),
     canUseDocumentPip: Boolean(input.canUseDocumentPip),
   };
 }

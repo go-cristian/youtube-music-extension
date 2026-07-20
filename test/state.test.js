@@ -20,8 +20,29 @@ test("normalizes missing track metadata into an empty player state", () => {
   assert.equal(state.progressText, "");
   assert.equal(state.currentSeconds, 0);
   assert.equal(state.durationSeconds, 0);
+  assert.deepEqual(state.quickPicks, []);
   assert.equal(formatHoverLabel(state), EMPTY_TRACK_LABEL);
   assert.equal(hasTrackMetadata(state), false);
+});
+
+test("normalizes quick picks into player state", () => {
+  const state = normalizePlayerState({
+    quickPicks: [
+      {
+        title: "  my mind is a mountain  ",
+        artist: "  Deftones  ",
+        artworkUrl: " https://example.test/deftones.jpg ",
+      },
+    ],
+  });
+
+  assert.deepEqual(state.quickPicks, [
+    {
+      title: "my mind is a mountain",
+      artist: "Deftones",
+      artworkUrl: "https://example.test/deftones.jpg",
+    },
+  ]);
 });
 
 test("trims track metadata and keeps playback fields", () => {

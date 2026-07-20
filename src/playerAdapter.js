@@ -1,4 +1,4 @@
-import { normalizePlayerState } from "./state.js";
+import { normalizePlayerState, parseTimeText } from "./state.js";
 
 const SELECTORS = {
   title: [
@@ -76,6 +76,56 @@ function findFirst(doc, selectors) {
   return null;
 }
 
+function readText(element, selector) {
+  return element.querySelector(selector)?.textContent?.trim() ?? "";
+}
+
+function readAttribute(element, selector, attribute) {
+  return element.querySelector(selector)?.getAttribute(attribute)?.trim() ?? "";
+}
+
+function findQuickPicksShelf(doc) {
+  return [...doc.querySelectorAll("ytmusic-carousel-shelf-renderer")]
+    .find((shelf) => readText(shelf, ".title text, .title").toLowerCase() === "quick picks");
+}
+
+function cleanArtist(value) {
+  return value.split("•")[0].trim();
+}
+
+export function readQuickPicks(doc) {
+  const shelf = findQuickPicksShelf(doc);
+
+  if (!shelf) {
+    return [];
+  }
+
+  return [...shelf.querySelectorAll("ytmusic-responsive-list-item-renderer")]
+    .map((item) => ({
+      title: readText(item, ".title a, .title"),
+      artist: cleanArtist(readText(item, ".secondary-flex-columns .flex-column yt-formatted-string")),
+      artworkUrl: readAttribute(item, "img", "src"),
+    }))
+    .filter((item) => item.title)
+    .slice(0, 8);
+}
+
+function playQuickPick(doc, index) {
+  const shelf = findQuickPicksShelf(doc);
+  const item = shelf?.querySelectorAll("ytmusic-responsive-list-item-renderer")?.[index];
+  const playButton = item?.querySelector("ytmusic-play-button-renderer#play-button");
+  const fallbackTarget = item?.querySelector(".thumbnail-overlay, .title a");
+
+  playButton?.click?.();
+
+  if (playButton) {
+    return true;
+  }
+
+  fallbackTarget?.click?.();
+  return Boolean(fallbackTarget);
+}
+
 function readPlaybackState(doc) {
   const button = findFirst(doc, SELECTORS.playPause);
   const title = button?.getAttribute("title") ?? "";
@@ -97,12 +147,14 @@ function readTimes(doc) {
   const progress = readFirstText(doc, SELECTORS.progress);
   const match = progress.match(/([0-9:]+)\s*\/\s*([0-9:]+)/);
   const media = findMediaElement(doc);
+  const currentTime = match?.[1] ?? "";
+  const duration = match?.[2] ?? "";
 
   return {
-    currentTime: match?.[1] ?? "",
-    duration: match?.[2] ?? "",
-    currentSeconds: media?.currentTime ?? 0,
-    durationSeconds: Number.isFinite(media?.duration) ? media.duration : 0,
+    currentTime,
+    duration,
+    currentSeconds: currentTime ? parseTimeText(currentTime) : media?.currentTime ?? 0,
+    durationSeconds: duration ? parseTimeText(duration) : Number.isFinite(media?.duration) ? media.duration : 0,
   };
 }
 
@@ -123,7 +175,13 @@ export function seekMediaToSeconds(doc, seconds) {
     return false;
   }
 
+  const wasPlaying = media.paused === false;
   media.currentTime = Math.max(0, Math.min(seconds, media.duration));
+
+  if (wasPlaying) {
+    media.play?.();
+  }
+
   return true;
 }
 
@@ -141,7 +199,8 @@ export function createPlayerAdapter(doc = document) {
         duration: times.duration,
         currentSeconds: times.currentSeconds,
         durationSeconds: times.durationSeconds,
-        canUseDocumentPip: "documentPictureInPicture" in window,
+        quickPicks: readQuickPicks(doc),
+        canUseDocumentPip: typeof window !== "undefined" && "documentPictureInPicture" in window,
       });
     },
     togglePlayPause() {
@@ -155,6 +214,9 @@ export function createPlayerAdapter(doc = document) {
     },
     seekTo(seconds) {
       return seekMediaToSeconds(doc, seconds);
+    },
+    playQuickPick(index) {
+      return playQuickPick(doc, index);
     },
     subscribe(callback) {
       let timeoutId = 0;

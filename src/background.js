@@ -36,6 +36,19 @@ async function ensureContentScript(tabId) {
       files: ["src/content.js"],
     });
   }
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await delay(100);
+
+    try {
+      await chrome.tabs.sendMessage(tabId, { type: "PING_YTM_FLOATING_PLAYER" });
+      return;
+    } catch (_error) {
+      // The injected module may still be registering its listener.
+    }
+  }
+
+  throw new Error("YouTube Music content script did not become ready");
 }
 
 async function sendToMusicTab(message) {
@@ -56,12 +69,23 @@ async function openFallbackWindow() {
   const window = await chrome.windows.create({
     url: chrome.runtime.getURL("src/fallback.html"),
     type: "popup",
-    width: 340,
-    height: 430,
+    width: 460,
+    height: 240,
     focused: true,
   });
 
   fallbackWindowId = window.id ?? 0;
+}
+
+async function focusTab(tab) {
+  await chrome.tabs.update(tab.id, { active: true });
+  await chrome.windows.update(tab.windowId, { focused: true });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 async function openMiniPlayer(activeTab) {
@@ -72,11 +96,8 @@ async function openMiniPlayer(activeTab) {
   }
 
   await ensureContentScript(musicTab.id);
-  const response = await chrome.tabs.sendMessage(musicTab.id, { type: "OPEN_YTM_FLOATING_PLAYER" });
-
-  if (!response?.opened) {
-    await openFallbackWindow();
-  }
+  await focusTab(musicTab);
+  await chrome.tabs.sendMessage(musicTab.id, { type: "SHOW_YTM_FLOATING_PLAYER_BUTTON" });
 }
 
 chrome.action.onClicked.addListener((tab) => {
