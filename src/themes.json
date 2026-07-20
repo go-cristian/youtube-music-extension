@@ -1,0 +1,192 @@
+[
+  {
+    "id": "console",
+    "name": "Console",
+    "shortName": "Console",
+    "tokens": {
+      "surface": "#0b1016",
+      "surfaceAlt": "#16202c",
+      "textPrimary": "#e8f5ff",
+      "textMuted": "#8ea0b4",
+      "accent": "#7cff8a",
+      "radius": "6px",
+      "gap": "10px"
+    },
+    "layout": {
+      "type": "grid",
+      "columns": "minmax(0, 1fr) 118px",
+      "variant": "console",
+      "viewport": { "width": 500, "height": 280 }
+    },
+    "background": {
+      "kind": "grid",
+      "usesArtworkColor": true,
+      "animation": "scan"
+    },
+    "blocks": {
+      "controls": {
+        "variant": "console-keys",
+        "icons": { "previous": "skip-back", "play": "play", "pause": "pause", "next": "skip-forward", "quickPicks": "terminal", "themes": "palette", "close": "x" },
+        "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
+      },
+      "quickPicks": { "visible": true, "mode": "sidePanel" },
+      "themePicker": { "visible": true }
+    },
+    "animations": {
+      "drawer": "slide-up",
+      "themeSwitch": "fade"
+    }
+  },
+  {
+    "id": "tile",
+    "name": "Tile",
+    "shortName": "Tile",
+    "tokens": {
+      "surface": "#120f14",
+      "surfaceAlt": "#211927",
+      "textPrimary": "#fff7fb",
+      "textMuted": "#c8b8c8",
+      "accent": "#ef476f",
+      "radius": "10px",
+      "gap": "12px"
+    },
+    "layout": {
+      "type": "grid",
+      "columns": "minmax(0, 1fr)",
+      "variant": "tile",
+      "viewport": { "width": 380, "height": 390 }
+    },
+    "background": {
+      "kind": "artworkGlow",
+      "usesArtworkColor": true,
+      "animation": "breathe"
+    },
+    "blocks": {
+      "controls": {
+        "variant": "floating-icons",
+        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "list-music", "themes": "palette", "close": "x" },
+        "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
+      },
+      "quickPicks": { "visible": true, "mode": "bottomSheet" },
+      "themePicker": { "visible": true }
+    },
+    "animations": {
+      "drawer": "scale-soft",
+      "themeSwitch": "fade"
+    }
+  },
+  {
+    "id": "glass",
+    "name": "Glass",
+    "shortName": "Glass",
+    "tokens": {
+      "surface": "#101419",
+      "surfaceAlt": "#222a31",
+      "textPrimary": "#f7fbff",
+      "textMuted": "#9eabb7",
+      "accent": "#8bd3ff",
+      "radius": "12px",
+      "gap": "14px"
+    },
+    "layout": {
+      "type": "grid",
+      "columns": "minmax(0, 1fr) 150px",
+      "variant": "glass",
+      "viewport": { "width": 540, "height": 340 }
+    },
+    "background": {
+      "kind": "transparent",
+      "usesArtworkColor": true,
+      "animation": "float"
+    },
+    "blocks": {
+      "controls": {
+        "variant": "orbital",
+        "icons": { "previous": "chevron-left", "play": "disc-3", "pause": "pause", "next": "chevron-right", "quickPicks": "sparkles", "themes": "palette", "close": "x" },
+        "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
+      },
+      "quickPicks": { "visible": true, "mode": "drawer" },
+      "themePicker": { "visible": true }
+    },
+    "animations": {
+      "drawer": "fade-scale",
+      "themeSwitch": "fade"
+    }
+  },
+  {
+    "id": "stack",
+    "name": "Stack",
+    "shortName": "Stack",
+    "tokens": {
+      "surface": "#15130f",
+      "surfaceAlt": "#28231a",
+      "textPrimary": "#fff8ec",
+      "textMuted": "#b9aa92",
+      "accent": "#f5b84b",
+      "radius": "8px",
+      "gap": "10px"
+    },
+    "layout": {
+      "type": "grid",
+      "columns": "minmax(0, 1fr) 138px",
+      "variant": "stack",
+      "viewport": { "width": 520, "height": 300 }
+    },
+    "background": {
+      "kind": "paperStack",
+      "usesArtworkColor": true,
+      "animation": "drift"
+    },
+    "blocks": {
+      "controls": {
+        "variant": "stacked",
+        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "layers-3", "themes": "palette", "close": "x" },
+        "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
+      },
+      "quickPicks": { "visible": true, "mode": "bottomSheet" },
+      "themePicker": { "visible": true }
+    },
+    "animations": {
+      "drawer": "slide-up",
+      "themeSwitch": "fade"
+    }
+  },
+  {
+    "id": "signal",
+    "name": "Signal",
+    "shortName": "Signal",
+    "tokens": {
+      "surface": "#111318",
+      "surfaceAlt": "#1c222d",
+      "textPrimary": "#f6f8fb",
+      "textMuted": "#9ca8b7",
+      "accent": "#ffcc33",
+      "radius": "8px",
+      "gap": "14px"
+    },
+    "layout": {
+      "type": "grid",
+      "columns": "minmax(0, 1fr) 140px",
+      "variant": "signal",
+      "viewport": { "width": 520, "height": 300 }
+    },
+    "background": {
+      "kind": "signal",
+      "usesArtworkColor": true,
+      "animation": "wave"
+    },
+    "blocks": {
+      "controls": {
+        "variant": "signal-strip",
+        "icons": { "previous": "skip-back", "play": "radio", "pause": "pause", "next": "skip-forward", "quickPicks": "list-music", "themes": "palette", "close": "x" },
+        "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
+      },
+      "quickPicks": { "visible": true, "mode": "sidePanel" },
+      "themePicker": { "visible": true }
+    },
+    "animations": {
+      "drawer": "slide-up",
+      "themeSwitch": "fade"
+    }
+  }
+]

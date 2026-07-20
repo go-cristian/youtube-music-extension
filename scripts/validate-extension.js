@@ -6,9 +6,12 @@ const declaredRequiredFiles = [
   "src/background.js",
   "src/content.js",
   "src/bootstrap.js",
+  "src/icons.js",
   "src/playerAdapter.js",
   "src/pip.js",
   "src/state.js",
+  "src/themeEngine.js",
+  "src/themes.json",
 ];
 
 const internalRequiredFiles = [

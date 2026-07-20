@@ -10,7 +10,7 @@
     "service_worker": "src/background.js",
     "type": "module"
   },
-  "permissions": ["scripting", "tabs"],
+  "permissions": ["scripting", "storage", "tabs"],
   "host_permissions": ["https://music.youtube.com/*"],
   "content_scripts": [
     {
@@ -25,9 +25,12 @@
         "src/bootstrap.js",
         "src/content.js",
         "src/fallback.js",
+        "src/icons.js",
         "src/playerAdapter.js",
         "src/pip.js",
-        "src/state.js"
+        "src/state.js",
+        "src/themeEngine.js",
+        "src/themes.json"
       ],
       "matches": ["https://music.youtube.com/*"]
     }
