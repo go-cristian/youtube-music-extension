@@ -42,6 +42,58 @@ function normalizeQuickPicks(input = []) {
     .filter((item) => item.title);
 }
 
+function normalizeLyricLines(input = []) {
+  return input
+    .map((line) => ({
+      text: String(line.text ?? "").trim(),
+      startSeconds: Number.isFinite(line.startSeconds) ? Math.max(0, line.startSeconds) : null,
+      endSeconds: Number.isFinite(line.endSeconds) ? Math.max(0, line.endSeconds) : null,
+    }))
+    .filter((line) => line.text);
+}
+
+function findCurrentLyricIndex(lines, currentSeconds, durationSeconds) {
+  if (!lines.length) {
+    return -1;
+  }
+
+  const timedIndex = lines.findIndex((line, index) => {
+    if (!Number.isFinite(line.startSeconds)) {
+      return false;
+    }
+
+    const nextStart = lines[index + 1]?.startSeconds;
+    const endSeconds = Number.isFinite(line.endSeconds) ? line.endSeconds : nextStart;
+    const upperBound = Number.isFinite(endSeconds) ? endSeconds : Number.POSITIVE_INFINITY;
+
+    return currentSeconds >= line.startSeconds && currentSeconds < upperBound;
+  });
+
+  if (timedIndex >= 0) {
+    return timedIndex;
+  }
+
+  if (durationSeconds > 0) {
+    return Math.min(lines.length - 1, Math.floor((currentSeconds / durationSeconds) * lines.length));
+  }
+
+  return 0;
+}
+
+function normalizeLyrics(input = {}, currentSeconds = 0, durationSeconds = 0) {
+  const lines = normalizeLyricLines(input.lines);
+  const currentIndex = findCurrentLyricIndex(lines, currentSeconds, durationSeconds);
+
+  return {
+    lines,
+    currentIndex,
+    isSynced: lines.some((line) => Number.isFinite(line.startSeconds)),
+    previous: currentIndex > 0 ? lines[currentIndex - 1]?.text ?? "" : "",
+    current: currentIndex >= 0 ? lines[currentIndex]?.text ?? "" : "",
+    next: currentIndex >= 0 ? lines[currentIndex + 1]?.text ?? "" : "",
+  };
+}
+
 export function normalizePlayerState(input = {}) {
   const title = String(input.title ?? "").trim();
   const artist = String(input.artist ?? "").trim();
@@ -60,6 +112,7 @@ export function normalizePlayerState(input = {}) {
     currentSeconds,
     durationSeconds,
     quickPicks: normalizeQuickPicks(input.quickPicks),
+    lyrics: normalizeLyrics(input.lyrics, currentSeconds, durationSeconds),
     canUseDocumentPip: Boolean(input.canUseDocumentPip),
   };
 }

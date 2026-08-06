@@ -38,7 +38,30 @@ const SELECTORS = {
     "ytmusic-player-bar .time-info",
     ".ytmusic-player-bar .time-info",
   ],
+  lyrics: [
+    "ytmusic-lyrics-renderer",
+    "ytmusic-tab-renderer[page-type='MUSIC_PAGE_TYPE_TRACK_LYRICS']",
+    "ytmusic-player-page ytmusic-description-shelf-renderer",
+    "#lyrics",
+  ],
+  lyricLine: [
+    "[start-time]",
+    "[data-start-time]",
+    "[data-start-time-ms]",
+    "[data-time]",
+    "[data-time-ms]",
+    ".lyrics-line",
+    ".line",
+    "yt-formatted-string",
+  ],
+  currentSongLink: [
+    "ytmusic-player-bar a[href*='watch?v=']",
+    ".ytmusic-player-bar a[href*='watch?v=']",
+  ],
 };
+
+const MUSIC_ORIGIN = "https://music.youtube.com";
+const ANDROID_MUSIC_CLIENT_VERSION = "8.05.51";
 
 export function readFirstText(doc, selectors) {
   for (const selector of selectors) {
@@ -76,6 +99,10 @@ function findFirst(doc, selectors) {
   return null;
 }
 
+function findAll(doc, selectors) {
+  return selectors.flatMap((selector) => [...doc.querySelectorAll(selector)]);
+}
+
 function readText(element, selector) {
   return element.querySelector(selector)?.textContent?.trim() ?? "";
 }
@@ -91,6 +118,291 @@ function findQuickPicksShelf(doc) {
 
 function cleanArtist(value) {
   return value.split("•")[0].trim();
+}
+
+function parseTimeAttribute(value) {
+  const rawValue = String(value ?? "").trim();
+
+  if (!rawValue) {
+    return null;
+  }
+
+  if (rawValue.includes(":")) {
+    return parseTimeText(rawValue);
+  }
+
+  const numberValue = Number.parseFloat(rawValue);
+
+  if (!Number.isFinite(numberValue)) {
+    return null;
+  }
+
+  return numberValue > 1000 ? numberValue / 1000 : numberValue;
+}
+
+function readLineStartSeconds(element) {
+  const values = [
+    element.getAttribute?.("start-time"),
+    element.getAttribute?.("data-start-time"),
+    element.getAttribute?.("data-start-time-ms"),
+    element.getAttribute?.("data-time"),
+    element.getAttribute?.("data-time-ms"),
+  ];
+
+  for (const value of values) {
+    const seconds = parseTimeAttribute(value);
+
+    if (Number.isFinite(seconds)) {
+      return seconds;
+    }
+  }
+
+  return null;
+}
+
+function textLooksLikeLyrics(text) {
+  const normalized = text.toLowerCase();
+
+  return text.length > 1
+    && !normalized.includes("lyrics unavailable")
+    && !normalized.includes("lyrics not available")
+    && !normalized.includes("no lyrics");
+}
+
+function readLyricsFromContainer(container) {
+  const lineElements = SELECTORS.lyricLine
+    .flatMap((selector) => [...container.querySelectorAll(selector)]);
+  const candidates = lineElements.length ? lineElements : [container];
+
+  const lines = candidates
+    .flatMap((lineElement) => String(lineElement.textContent ?? "")
+      .split("\n")
+      .map((text) => ({
+        text: text.trim(),
+        startSeconds: readLineStartSeconds(lineElement),
+      })))
+    .filter((line) => textLooksLikeLyrics(line.text));
+
+  return {
+    lines,
+  };
+}
+
+export function readLyrics(doc) {
+  const container = findFirst(doc, SELECTORS.lyrics);
+
+  if (!container) {
+    return { lines: [] };
+  }
+
+  return readLyricsFromContainer(container);
+}
+
+function readVideoIdFromUrl(value) {
+  try {
+    return new URL(value, MUSIC_ORIGIN).searchParams.get("v") ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function readCurrentVideoId(doc, locationValue = globalThis.location) {
+  const urlVideoId = readVideoIdFromUrl(locationValue?.href ?? "");
+
+  if (urlVideoId) {
+    return urlVideoId;
+  }
+
+  for (const link of findAll(doc, SELECTORS.currentSongLink)) {
+    const videoId = readVideoIdFromUrl(link.getAttribute?.("href") ?? "");
+
+    if (videoId) {
+      return videoId;
+    }
+  }
+
+  return "";
+}
+
+function parseInnertubeConfig(text = "") {
+  const readConfigValue = (key) => {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"]+)"`));
+
+    return match?.[1] ?? "";
+  };
+
+  return {
+    apiKey: readConfigValue("INNERTUBE_API_KEY"),
+    clientVersion: readConfigValue("INNERTUBE_CLIENT_VERSION"),
+    visitorData: readConfigValue("VISITOR_DATA"),
+  };
+}
+
+function readInnertubeConfigFromDocument(doc) {
+  const scriptText = [...doc.querySelectorAll("script")]
+    .map((script) => script.textContent ?? "")
+    .find((text) => text.includes("INNERTUBE_API_KEY")) ?? "";
+
+  return parseInnertubeConfig(scriptText || (doc.documentElement?.innerHTML ?? ""));
+}
+
+function hasInnertubeConfig(config) {
+  return Boolean(config.apiKey && config.clientVersion && config.visitorData);
+}
+
+async function fetchInnertubeConfig(fetchImpl) {
+  const response = await fetchImpl("/", {
+    credentials: "include",
+    headers: { "accept-language": "en-US,en;q=0.9" },
+  });
+  const html = await response.text();
+
+  return parseInnertubeConfig(html);
+}
+
+async function postInnertube(fetchImpl, endpoint, apiKey, body) {
+  const response = await fetchImpl(`${MUSIC_ORIGIN}/youtubei/v1/${endpoint}?key=${apiKey}`, {
+    body: JSON.stringify(body),
+    credentials: "include",
+    headers: {
+      "content-type": "application/json",
+      "x-origin": MUSIC_ORIGIN,
+    },
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(`YouTube Music ${endpoint} failed with ${response.status}`);
+  }
+
+  return response.json();
+}
+
+function walkObject(value, callback) {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+
+  callback(value);
+
+  for (const child of Object.values(value)) {
+    walkObject(child, callback);
+  }
+}
+
+function findLyricsBrowseId(response) {
+  let browseId = "";
+
+  walkObject(response, (value) => {
+    if (!browseId && typeof value.browseId === "string" && value.browseId.startsWith("MPLYt_")) {
+      browseId = value.browseId;
+    }
+  });
+
+  return browseId;
+}
+
+function findTimedLyricsData(response) {
+  let timedLyricsData = [];
+
+  walkObject(response, (value) => {
+    if (!timedLyricsData.length && Array.isArray(value.timedLyricsData)) {
+      timedLyricsData = value.timedLyricsData;
+    }
+  });
+
+  return timedLyricsData;
+}
+
+export function timedLyricsDataToLines(timedLyricsData = []) {
+  return timedLyricsData
+    .map((item) => ({
+      text: String(item.lyricLine ?? "").trim(),
+      startSeconds: Number.parseInt(item.cueRange?.startTimeMilliseconds ?? "", 10) / 1000,
+      endSeconds: Number.parseInt(item.cueRange?.endTimeMilliseconds ?? "", 10) / 1000,
+    }))
+    .filter((line) => line.text && Number.isFinite(line.startSeconds));
+}
+
+function createTimedLyricsLoader(doc, fetchImpl = globalThis.fetch?.bind(globalThis)) {
+  let configPromise = null;
+  let cache = { videoId: "", lyrics: { lines: [] }, isLoading: false };
+
+  async function getConfig() {
+    const documentConfig = readInnertubeConfigFromDocument(doc);
+
+    if (hasInnertubeConfig(documentConfig)) {
+      return documentConfig;
+    }
+
+    configPromise ??= fetchInnertubeConfig(fetchImpl);
+    return configPromise;
+  }
+
+  async function load(videoId) {
+    const config = await getConfig();
+
+    if (!hasInnertubeConfig(config)) {
+      return { lines: [] };
+    }
+
+    const webContext = {
+      client: {
+        clientName: "WEB_REMIX",
+        clientVersion: config.clientVersion,
+        visitorData: config.visitorData,
+      },
+    };
+    const nextResponse = await postInnertube(fetchImpl, "next", config.apiKey, {
+      context: webContext,
+      videoId,
+    });
+    const browseId = findLyricsBrowseId(nextResponse);
+
+    if (!browseId) {
+      return { lines: [] };
+    }
+
+    const androidContext = {
+      client: {
+        androidSdkVersion: 35,
+        clientName: "ANDROID_MUSIC",
+        clientVersion: ANDROID_MUSIC_CLIENT_VERSION,
+        visitorData: config.visitorData,
+      },
+    };
+    const lyricsResponse = await postInnertube(fetchImpl, "browse", config.apiKey, {
+      browseId,
+      context: androidContext,
+    });
+
+    return { lines: timedLyricsDataToLines(findTimedLyricsData(lyricsResponse)) };
+  }
+
+  function get(videoId) {
+    if (!fetchImpl || !videoId) {
+      return { lines: [] };
+    }
+
+    if (videoId !== cache.videoId) {
+      cache = { videoId, lyrics: { lines: [] }, isLoading: true };
+      load(videoId)
+        .then((lyrics) => {
+          if (cache.videoId === videoId) {
+            cache = { videoId, lyrics, isLoading: false };
+          }
+        })
+        .catch(() => {
+          if (cache.videoId === videoId) {
+            cache = { videoId, lyrics: { lines: [] }, isLoading: false };
+          }
+        });
+    }
+
+    return cache.lyrics;
+  }
+
+  return { get };
 }
 
 export function readQuickPicks(doc) {
@@ -185,10 +497,15 @@ export function seekMediaToSeconds(doc, seconds) {
   return true;
 }
 
-export function createPlayerAdapter(doc = document) {
+export function createPlayerAdapter(doc = document, options = {}) {
+  const timedLyrics = createTimedLyricsLoader(doc, options.fetchImpl);
+
   return {
     getState() {
       const times = readTimes(doc);
+      const videoId = readCurrentVideoId(doc, options.location);
+      const syncedLyrics = timedLyrics.get(videoId);
+      const fallbackLyrics = readLyrics(doc);
 
       return normalizePlayerState({
         title: readFirstText(doc, SELECTORS.title),
@@ -200,6 +517,7 @@ export function createPlayerAdapter(doc = document) {
         currentSeconds: times.currentSeconds,
         durationSeconds: times.durationSeconds,
         quickPicks: readQuickPicks(doc),
+        lyrics: syncedLyrics.lines.length ? syncedLyrics : fallbackLyrics,
         canUseDocumentPip: typeof window !== "undefined" && "documentPictureInPicture" in window,
       });
     },

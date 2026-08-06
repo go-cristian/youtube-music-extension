@@ -7,15 +7,22 @@ import {
 } from "./themeEngine.js";
 import { renderIcon } from "./icons.js";
 
+const EXTENSION_VERSION = "0.1.1";
+const STORE_REVIEW_URL = "https://chromewebstore.google.com/detail/youtube-music-floating-pl/cfnbddbllmmnedlgalnppbnfkmpijlda/reviews";
+const GITHUB_URL = "https://github.com/go-cristian/youtube-music-extension";
+const PRIVACY_URL = "https://github.com/go-cristian/youtube-music-extension/blob/main/PRIVACY.md";
+
 export function createPipController({ getState, onPlayPause, onPrevious, onNext, onSeek, onQuickPick }) {
   let pipWindow = null;
   let elements = null;
   let isSeeking = false;
   let isDrawerOpen = false;
   let isThemePickerOpen = false;
+  let isAboutOpen = false;
   let currentTheme = getTheme("tile");
   let currentArtworkUrl = "";
   let currentArtworkAccent = currentTheme.tokens.artworkAccent;
+  let currentLyricKey = "";
 
   function isSupported() {
     return "documentPictureInPicture" in window;
@@ -29,6 +36,8 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     const hasTrack = Boolean(state.title || state.artist || state.artworkUrl);
     const shouldShowQuickPicks = isDrawerOpen || !hasTrack;
     const quickPicksMode = currentTheme.blocks.quickPicks.mode;
+    const lyrics = currentTheme.blocks.lyrics;
+    const lyricState = state.lyrics ?? {};
     const controls = currentTheme.blocks.controls;
     const playPauseKey = state.isPlaying ? "pause" : "play";
 
@@ -39,14 +48,22 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     setControl(elements.next, controls, "next");
     setControl(elements.drawerButton, controls, "quickPicks");
     setControl(elements.themeButton, controls, "themes");
+    setControl(elements.aboutButton, controls, "about");
     setControl(elements.closeDrawer, controls, "close");
     setControl(elements.closeThemePicker, controls, "close");
+    setControl(elements.closeAbout, controls, "close");
     elements.progress.textContent = state.progressText || "";
     elements.seek.disabled = state.durationSeconds <= 0;
     elements.seek.max = String(Math.max(state.durationSeconds, 1));
     elements.drawer.hidden = !shouldShowQuickPicks;
     elements.drawer.dataset.mode = quickPicksMode;
     elements.themeSheet.hidden = !isThemePickerOpen;
+    elements.aboutSheet.hidden = !isAboutOpen;
+    elements.lyrics.hidden = !lyrics.visible || !lyricState.current;
+    elements.lyrics.dataset.placement = lyrics.placement;
+    elements.lyrics.dataset.layer = lyrics.layer;
+    elements.lyrics.dataset.motion = lyrics.motion;
+    elements.lyrics.dataset.style = lyrics.style;
     elements.drawerButton.hidden = false;
     elements.emptyHint.hidden = hasTrack;
     elements.playerControls.hidden = false;
@@ -66,6 +83,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     }
 
     renderQuickPicks(elements.drawerList, state.quickPicks);
+    renderLyrics(elements.lyrics, lyricState, lyrics.motion);
     renderThemePicker();
 
     if (state.artworkUrl) {
@@ -121,6 +139,40 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         </button>
       `)
       .join("");
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function renderLyrics(container, lyrics = {}, motion = "rise") {
+    const lines = [
+      { role: "previous", text: lyrics.previous },
+      { role: "current", text: lyrics.current },
+      { role: "next", text: lyrics.next },
+    ].filter((line) => line.text);
+    const nextLyricKey = `${lyrics.previous ?? ""}|${lyrics.current ?? ""}|${lyrics.next ?? ""}`;
+    const shouldAnimate = nextLyricKey && nextLyricKey !== currentLyricKey;
+
+    container.innerHTML = lines
+      .map((line) => `<p class="lyric-line lyric-${line.role}">${escapeHtml(line.text)}</p>`)
+      .join("");
+
+    if (shouldAnimate) {
+      container.dataset.motion = motion;
+      container.dataset.phase = "enter";
+      window.setTimeout(() => {
+        if (container.dataset.phase === "enter") {
+          container.dataset.phase = "settled";
+        }
+      }, 260);
+    }
+
+    currentLyricKey = nextLyricKey;
   }
 
   function renderQuickPicks(list, quickPicks = []) {
@@ -253,6 +305,12 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           position: relative;
           z-index: 1;
         }
+        .lyrics[data-layer="behind"] {
+          z-index: 0;
+        }
+        .lyrics[data-layer="front"] {
+          z-index: 2;
+        }
         .player::before {
           content: "";
           inset: 0;
@@ -335,9 +393,22 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         .theme-console .art {
           animation: pulse-soft 2.8s ease-in-out infinite;
         }
+        .lyrics[data-placement="console-dock"] {
+          bottom: 74px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          left: 20px;
+          max-width: none;
+          right: 150px;
+        }
         .theme-console .body {
-          padding-bottom: 76px;
+          padding-bottom: 124px;
           padding-right: 10px;
+          padding-top: 8px;
+        }
+        .theme-console .art {
+          position: absolute;
+          right: 16px;
+          top: 44px;
         }
         .theme-console .controls {
           bottom: 20px;
@@ -348,24 +419,24 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         }
         .theme-console .utility-controls {
           bottom: 20px;
-          grid-template-columns: 40px 40px;
+          grid-template-columns: 40px 40px 40px;
           margin-top: 0;
           position: absolute;
           right: 16px;
         }
         .theme-tile {
           grid-template-columns: 1fr;
-          grid-template-rows: 132px minmax(0, 1fr);
+          grid-template-rows: 124px minmax(0, 1fr);
         }
         .theme-tile .art {
           grid-row: 1;
-          height: 132px;
+          height: 124px;
           justify-self: center;
-          width: 132px;
+          width: 124px;
         }
         .theme-tile .body {
           align-self: start;
-          padding-bottom: 0;
+          padding-bottom: 118px;
           text-align: center;
         }
         .theme-tile .controls {
@@ -376,12 +447,12 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           width: 260px;
         }
         .theme-tile .utility-controls {
-          grid-template-columns: 38px 38px;
+          grid-template-columns: 38px 38px 38px;
           justify-content: center;
           margin: 10px auto 0;
           position: static;
           transform: none;
-          width: 84px;
+          width: 130px;
         }
         .theme-tile .utility-controls button {
           height: 38px;
@@ -389,6 +460,12 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         }
         .theme-tile .art {
           animation: scale-soft 260ms ease-out;
+        }
+        .lyrics[data-placement="tile-dock"] {
+          bottom: 16px;
+          left: 24px;
+          right: 24px;
+          text-align: center;
         }
         .theme-glass {
           background:
@@ -403,11 +480,12 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           width: 150px;
         }
         .theme-glass .body {
-          align-self: center;
+          align-self: start;
           border: 1px solid rgba(255,255,255,.12);
           border-radius: 16px;
+          margin-top: 14px;
           padding: 16px 18px;
-          width: 320px;
+          width: 334px;
         }
         .theme-glass .drawer,
         .theme-glass .theme-sheet {
@@ -431,11 +509,18 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           transform: none;
         }
         .theme-glass .utility-controls {
-          grid-template-columns: 42px 42px;
+          grid-template-columns: 42px 42px 42px;
           justify-content: center;
           margin: 10px auto 0;
           position: static;
-          width: 90px;
+          width: 138px;
+        }
+        .lyrics[data-placement="glass-dock"] {
+          bottom: 18px;
+          left: 24px;
+          max-width: none;
+          right: 24px;
+          text-align: center;
         }
         .theme-stack {
           align-items: center;
@@ -454,7 +539,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           border-left: 0;
           min-width: 0;
           padding-left: 0;
-          padding-bottom: 52px;
+          padding-bottom: 62px;
         }
         .theme-stack h1 {
           font-family: Georgia, "Times New Roman", serif;
@@ -476,7 +561,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         .theme-stack .utility-controls {
           bottom: 20px;
           display: grid;
-          grid-template-columns: 36px 36px;
+          grid-template-columns: 36px 36px 36px;
           gap: 6px;
           left: 14px;
           margin-top: 0;
@@ -486,6 +571,16 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           height: 36px;
           padding: 0;
           width: 36px;
+        }
+        .lyrics[data-placement="stack-crawl"] {
+          bottom: 20px;
+          left: 28px;
+          max-width: none;
+          perspective: 240px;
+          right: 28px;
+          text-align: center;
+          transform: rotateX(32deg) rotateZ(-4deg);
+          transform-origin: bottom center;
         }
         .theme-signal {
           position: relative;
@@ -515,8 +610,8 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           text-transform: uppercase;
         }
         .theme-signal .body {
-          padding-top: 76px;
-          padding-bottom: 54px;
+          padding-top: 86px;
+          padding-bottom: 122px;
         }
         .theme-signal .controls {
           border: 1px solid color-mix(in srgb, var(--ytmp-accent) 42%, transparent);
@@ -528,7 +623,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           top: 28px;
         }
         .theme-signal .utility-controls {
-          bottom: 22px;
+          top: 84px;
           display: flex;
           gap: 6px;
           margin-top: 0;
@@ -540,8 +635,94 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           padding: 0;
           width: 34px;
         }
+        .lyrics[data-placement="signal-dock"] {
+          bottom: 18px;
+          left: 24px;
+          max-width: none;
+          right: 170px;
+          text-align: center;
+        }
         .body { min-width: 0; }
-        .body[hidden], .drawer[hidden], .empty-hint[hidden], .theme-sheet[hidden] { display: none; }
+        .body[hidden], .drawer[hidden], .empty-hint[hidden], .theme-sheet[hidden], .about-sheet[hidden], .lyrics[hidden] { display: none; }
+        .lyrics {
+          box-sizing: border-box;
+          display: grid;
+          gap: 4px;
+          min-height: 72px;
+          pointer-events: none;
+          position: absolute;
+        }
+        .lyrics[data-style="terminal"] {
+          background: linear-gradient(90deg, color-mix(in srgb, var(--ytmp-surface) 84%, transparent), color-mix(in srgb, var(--ytmp-surface) 42%, transparent));
+          border-left: 2px solid color-mix(in srgb, var(--ytmp-accent) 72%, transparent);
+          padding: 8px 12px;
+        }
+        .lyrics[data-style="soft-card"] {
+          background: color-mix(in srgb, var(--ytmp-surface) 78%, transparent);
+          border: 1px solid color-mix(in srgb, var(--ytmp-accent) 16%, transparent);
+          border-radius: 14px;
+          padding: 10px 12px;
+        }
+        .lyrics[data-style="glass-card"] {
+          backdrop-filter: blur(12px);
+          background: color-mix(in srgb, var(--ytmp-surface) 68%, transparent);
+          border: 1px solid rgba(255,255,255,.1);
+          border-radius: 14px;
+          padding: 12px 14px;
+        }
+        .lyrics[data-style="readout"] {
+          background: color-mix(in srgb, var(--ytmp-surface) 74%, transparent);
+          border: 1px solid color-mix(in srgb, var(--ytmp-accent) 26%, transparent);
+          padding: 8px 12px;
+        }
+        .lyrics[data-style="crawl"] {
+          background: transparent;
+          padding: 0;
+        }
+        .lyrics[data-phase="enter"][data-motion="rise"] {
+          animation: lyrics-rise 240ms ease-out;
+        }
+        .lyrics[data-phase="enter"][data-motion="drop"] {
+          animation: lyrics-drop 240ms ease-out;
+        }
+        .lyrics[data-phase="enter"][data-motion="float-up"] {
+          animation: lyrics-float-up 260ms ease-out;
+        }
+        .lyrics[data-phase="enter"][data-motion="crawl"] {
+          animation: lyrics-crawl 460ms ease-out;
+        }
+        .lyric-line {
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          color: var(--ytmp-text-muted);
+          display: -webkit-box;
+          font-size: 13px;
+          font-weight: 700;
+          line-height: 1.22;
+          margin: 0;
+          max-width: 100%;
+          opacity: .36;
+          overflow: hidden;
+          text-shadow: 0 2px 14px rgba(0,0,0,.45);
+          white-space: normal;
+        }
+        .lyric-current {
+          color: #fff;
+          font-size: 15px;
+          opacity: 1;
+        }
+        .lyrics[data-style="crawl"] .lyric-line {
+          color: color-mix(in srgb, var(--ytmp-accent) 72%, #fff);
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 14px;
+          opacity: .28;
+          text-transform: uppercase;
+        }
+        .lyrics[data-style="crawl"] .lyric-current {
+          color: #fff7dc;
+          font-size: 17px;
+          opacity: .9;
+        }
         .art {
           align-self: center;
           aspect-ratio: 1 / 1;
@@ -686,7 +867,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         .utility-controls {
           display: grid;
           gap: 8px;
-          grid-template-columns: 1fr 44px;
+          grid-template-columns: 1fr 44px 44px;
           margin-top: 8px;
         }
         .drawer-button { min-width: 0; }
@@ -813,7 +994,8 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         button.quick-pick {
           display: grid;
         }
-        .theme-sheet {
+        .theme-sheet,
+        .about-sheet {
           animation: slide-up 180ms ease-out;
           background: var(--ytmp-surface);
           box-sizing: border-box;
@@ -823,6 +1005,46 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           padding: 16px;
           position: absolute;
           z-index: 3;
+        }
+        .about-content {
+          align-content: start;
+          display: grid;
+          gap: 10px;
+          overflow-y: auto;
+        }
+        .about-title {
+          color: var(--ytmp-text-primary);
+          font-size: 18px;
+          font-weight: 800;
+          margin: 0;
+          white-space: normal;
+        }
+        .about-copy {
+          color: var(--ytmp-text-muted);
+          font-size: 13px;
+          line-height: 1.45;
+          margin: 0;
+          white-space: normal;
+        }
+        .about-actions {
+          display: grid;
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .about-actions a {
+          align-items: center;
+          background: var(--ytmp-surface-alt);
+          border-radius: 8px;
+          color: var(--ytmp-text-primary);
+          display: flex;
+          font-weight: 800;
+          justify-content: center;
+          padding: 10px 12px;
+          text-decoration: none;
+        }
+        .about-actions a.primary-link {
+          background: var(--ytmp-accent);
+          color: #181818;
         }
         .theme-picker {
           align-content: start;
@@ -875,9 +1097,26 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           0%, 100% { transform: rotate(4deg) translateY(6px); }
           50% { transform: rotate(2deg) translateY(-2px); }
         }
+        @keyframes lyrics-rise {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes lyrics-drop {
+          from { opacity: 0; transform: translateY(-12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes lyrics-float-up {
+          from { opacity: 0; transform: translateY(10px) scale(.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes lyrics-crawl {
+          from { opacity: 0; transform: rotateX(32deg) rotateZ(-4deg) translateY(22px) scale(.96); }
+          to { opacity: 1; transform: rotateX(32deg) rotateZ(-4deg) translateY(0) scale(1); }
+        }
       </style>
       <style data-role="themeStyle"></style>
       <main class="player" data-role="player">
+        <section class="lyrics" data-role="lyrics" hidden aria-live="polite"></section>
         <section class="body">
           <h1 data-role="title">Open YouTube Music</h1>
           <p data-role="artist">No track loaded</p>
@@ -892,6 +1131,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           <div class="utility-controls">
             <button class="drawer-button" data-role="openDrawer">♪</button>
             <button class="theme-button" data-role="openThemePicker">◐</button>
+            <button class="about-button" data-role="openAbout">i</button>
           </div>
         </section>
         <div class="art" data-role="artwork">YTM</div>
@@ -909,12 +1149,29 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           </div>
           <nav class="theme-picker" data-role="themePicker" aria-label="Theme picker"></nav>
         </section>
+        <section class="about-sheet" data-role="aboutSheet" hidden>
+          <div class="drawer-header">
+            <h2>About</h2>
+            <button data-role="closeAbout">×</button>
+          </div>
+          <div class="about-content">
+            <h3 class="about-title">YouTube Music Floating Player</h3>
+            <p class="about-copy">Version ${EXTENSION_VERSION}. A themed mini player for YouTube Music with controls, quick picks, synced lyrics, and Document Picture-in-Picture.</p>
+            <p class="about-copy">Not affiliated with YouTube or Google.</p>
+            <div class="about-actions">
+              <a class="primary-link" href="${STORE_REVIEW_URL}" target="_blank" rel="noreferrer">Rate on Chrome Web Store</a>
+              <a href="${GITHUB_URL}" target="_blank" rel="noreferrer">View on GitHub</a>
+              <a href="${PRIVACY_URL}" target="_blank" rel="noreferrer">Privacy Policy</a>
+            </div>
+          </div>
+        </section>
       </main>
     `;
 
     elements = {
       artwork: pipWindow.document.querySelector("[data-role='artwork']"),
       player: pipWindow.document.querySelector("[data-role='player']"),
+      lyrics: pipWindow.document.querySelector("[data-role='lyrics']"),
       title: pipWindow.document.querySelector("[data-role='title']"),
       artist: pipWindow.document.querySelector("[data-role='artist']"),
       progress: pipWindow.document.querySelector("[data-role='progress']"),
@@ -926,12 +1183,15 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
       emptyHint: pipWindow.document.querySelector("[data-role='emptyHint']"),
       drawerButton: pipWindow.document.querySelector("[data-role='openDrawer']"),
       themeButton: pipWindow.document.querySelector("[data-role='openThemePicker']"),
+      aboutButton: pipWindow.document.querySelector("[data-role='openAbout']"),
       drawer: pipWindow.document.querySelector("[data-role='drawer']"),
       closeDrawer: pipWindow.document.querySelector("[data-role='closeDrawer']"),
       drawerList: pipWindow.document.querySelector("[data-role='drawerList']"),
       themeSheet: pipWindow.document.querySelector("[data-role='themeSheet']"),
       themePicker: pipWindow.document.querySelector("[data-role='themePicker']"),
       closeThemePicker: pipWindow.document.querySelector("[data-role='closeThemePicker']"),
+      aboutSheet: pipWindow.document.querySelector("[data-role='aboutSheet']"),
+      closeAbout: pipWindow.document.querySelector("[data-role='closeAbout']"),
       themeStyle: pipWindow.document.querySelector("[data-role='themeStyle']"),
     };
 
@@ -941,6 +1201,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     pipWindow.document.querySelector("[data-role='openDrawer']").addEventListener("click", () => {
       isDrawerOpen = true;
       isThemePickerOpen = false;
+      isAboutOpen = false;
       update();
     });
     pipWindow.document.querySelector("[data-role='closeDrawer']").addEventListener("click", () => {
@@ -950,10 +1211,21 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     pipWindow.document.querySelector("[data-role='openThemePicker']").addEventListener("click", () => {
       isDrawerOpen = false;
       isThemePickerOpen = true;
+      isAboutOpen = false;
       update();
     });
     pipWindow.document.querySelector("[data-role='closeThemePicker']").addEventListener("click", () => {
       isThemePickerOpen = false;
+      update();
+    });
+    pipWindow.document.querySelector("[data-role='openAbout']").addEventListener("click", () => {
+      isDrawerOpen = false;
+      isThemePickerOpen = false;
+      isAboutOpen = true;
+      update();
+    });
+    pipWindow.document.querySelector("[data-role='closeAbout']").addEventListener("click", () => {
+      isAboutOpen = false;
       update();
     });
     pipWindow.document.addEventListener("click", (event) => {
@@ -981,8 +1253,10 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
       currentTheme = getTheme(await saveThemeId(chrome.storage.local, button.dataset.themeId));
       currentArtworkAccent = currentTheme.tokens.artworkAccent;
       currentArtworkUrl = "";
+      currentLyricKey = "";
       applyPreferredWindowSize(currentTheme);
       isThemePickerOpen = false;
+      isAboutOpen = false;
       update();
     });
     elements.seek.addEventListener("input", () => {

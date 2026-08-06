@@ -3,10 +3,13 @@ import test from "node:test";
 
 import {
   createPlayerAdapter,
+  readCurrentVideoId,
+  readLyrics,
   readQuickPicks,
   readFirstAttribute,
   readFirstText,
   seekMediaToSeconds,
+  timedLyricsDataToLines,
 } from "../src/playerAdapter.js";
 
 function element(text = "", attributes = {}) {
@@ -44,6 +47,15 @@ function quickPickItem({ title, artist, artworkUrl }) {
   };
 }
 
+function lyricLine(text, attributes = {}) {
+  return {
+    textContent: text,
+    getAttribute(name) {
+      return attributes[name] ?? null;
+    },
+  };
+}
+
 test("readFirstText returns the first non-empty selector match", () => {
   const doc = documentWithMatches({
     ".empty": element("   "),
@@ -69,6 +81,119 @@ test("readFirstAttribute returns the first non-empty attribute match", () => {
   });
 
   assert.equal(readFirstAttribute(doc, [".missing-src", ".art"], "src"), "https://example.test/art.jpg");
+});
+
+test("readCurrentVideoId prefers the active music URL", () => {
+  const doc = documentWithMatches({});
+
+  assert.equal(readCurrentVideoId(doc, { href: "https://music.youtube.com/watch?v=abc123" }), "abc123");
+});
+
+test("readCurrentVideoId falls back to the player bar song link", () => {
+  const doc = documentWithMatches({
+    "ytmusic-player-bar a[href*='watch?v=']": element("", { href: "/watch?v=xyz789&list=RDAMVM" }),
+  });
+
+  assert.equal(readCurrentVideoId(doc, { href: "https://music.youtube.com/" }), "xyz789");
+});
+
+test("readLyrics extracts timed lines from a lyrics renderer", () => {
+  const lyricsRenderer = {
+    querySelectorAll(selector) {
+      if (selector !== "[start-time]") {
+        return [];
+      }
+
+      return [
+        lyricLine("Previous line", { "start-time": "0:12" }),
+        lyricLine("Current line", { "start-time": "0:30" }),
+      ];
+    },
+  };
+  const doc = documentWithMatches({
+    "ytmusic-lyrics-renderer": lyricsRenderer,
+  });
+
+  assert.deepEqual(readLyrics(doc), {
+    lines: [
+      { text: "Previous line", startSeconds: 12 },
+      { text: "Current line", startSeconds: 30 },
+    ],
+  });
+});
+
+test("timedLyricsDataToLines converts YouTube Music timed lyrics", () => {
+  assert.deepEqual(timedLyricsDataToLines([
+    {
+      lyricLine: "Current line",
+      cueRange: {
+        startTimeMilliseconds: "18250",
+        endTimeMilliseconds: "20090",
+      },
+    },
+  ]), [
+    {
+      text: "Current line",
+      startSeconds: 18.25,
+      endSeconds: 20.09,
+    },
+  ]);
+});
+
+test("adapter prefers synced lyrics from YouTube Music endpoints", async () => {
+  const doc = documentWithMatches({
+    "script": [
+      element('"INNERTUBE_API_KEY":"test-key","INNERTUBE_CLIENT_VERSION":"1.0","VISITOR_DATA":"visitor"'),
+    ],
+    "ytmusic-player-bar a[href*='watch?v=']": element("", { href: "/watch?v=song123" }),
+    "ytmusic-player-bar .time-info": element("0:19 / 3:00"),
+  });
+  const requests = [];
+  const fetchImpl = async (url, init) => {
+    requests.push({ url, body: JSON.parse(init.body) });
+
+    if (String(url).includes("/next")) {
+      return {
+        ok: true,
+        async json() {
+          return { tabs: [{ endpoint: { browseEndpoint: { browseId: "MPLYt_song123" } } }] };
+        },
+      };
+    }
+
+    return {
+      ok: true,
+      async json() {
+        return {
+          timedLyricsModel: {
+            lyricsData: {
+              timedLyricsData: [
+                { lyricLine: "Before", cueRange: { startTimeMilliseconds: "0", endTimeMilliseconds: "18000" } },
+                { lyricLine: "Now", cueRange: { startTimeMilliseconds: "18000", endTimeMilliseconds: "21000" } },
+                { lyricLine: "After", cueRange: { startTimeMilliseconds: "21000", endTimeMilliseconds: "25000" } },
+              ],
+            },
+          },
+        };
+      },
+    };
+  };
+  const adapter = createPlayerAdapter(doc, {
+    fetchImpl,
+    location: { href: "https://music.youtube.com/" },
+  });
+
+  adapter.getState();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const state = adapter.getState();
+
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].body.videoId, "song123");
+  assert.equal(requests[1].body.browseId, "MPLYt_song123");
+  assert.equal(state.lyrics.previous, "Before");
+  assert.equal(state.lyrics.current, "Now");
+  assert.equal(state.lyrics.next, "After");
+  assert.equal(state.lyrics.isSynced, true);
 });
 
 test("seekMediaToSeconds moves the media element inside its duration", () => {

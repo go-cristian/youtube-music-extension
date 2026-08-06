@@ -16,7 +16,7 @@
       "type": "grid",
       "columns": "minmax(0, 1fr) 118px",
       "variant": "console",
-      "viewport": { "width": 500, "height": 280 }
+      "viewport": { "width": 540, "height": 340 }
     },
     "background": {
       "kind": "grid",
@@ -26,11 +26,12 @@
     "blocks": {
       "controls": {
         "variant": "console-keys",
-        "icons": { "previous": "skip-back", "play": "play", "pause": "pause", "next": "skip-forward", "quickPicks": "terminal", "themes": "palette", "close": "x" },
+        "icons": { "previous": "skip-back", "play": "play", "pause": "pause", "next": "skip-forward", "quickPicks": "terminal", "themes": "palette", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "sidePanel" },
-      "themePicker": { "visible": true }
+      "themePicker": { "visible": true },
+      "lyrics": { "visible": true, "placement": "console-dock", "layer": "front", "motion": "rise", "style": "terminal" }
     },
     "animations": {
       "drawer": "slide-up",
@@ -54,7 +55,7 @@
       "type": "grid",
       "columns": "minmax(0, 1fr)",
       "variant": "tile",
-      "viewport": { "width": 380, "height": 390 }
+      "viewport": { "width": 400, "height": 480 }
     },
     "background": {
       "kind": "artworkGlow",
@@ -64,11 +65,12 @@
     "blocks": {
       "controls": {
         "variant": "floating-icons",
-        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "list-music", "themes": "palette", "close": "x" },
+        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "list-music", "themes": "palette", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "bottomSheet" },
-      "themePicker": { "visible": true }
+      "themePicker": { "visible": true },
+      "lyrics": { "visible": true, "placement": "tile-dock", "layer": "front", "motion": "rise", "style": "soft-card" }
     },
     "animations": {
       "drawer": "scale-soft",
@@ -92,7 +94,7 @@
       "type": "grid",
       "columns": "minmax(0, 1fr) 150px",
       "variant": "glass",
-      "viewport": { "width": 540, "height": 340 }
+      "viewport": { "width": 590, "height": 380 }
     },
     "background": {
       "kind": "transparent",
@@ -102,11 +104,12 @@
     "blocks": {
       "controls": {
         "variant": "orbital",
-        "icons": { "previous": "chevron-left", "play": "disc-3", "pause": "pause", "next": "chevron-right", "quickPicks": "sparkles", "themes": "palette", "close": "x" },
+        "icons": { "previous": "chevron-left", "play": "disc-3", "pause": "pause", "next": "chevron-right", "quickPicks": "sparkles", "themes": "palette", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "drawer" },
-      "themePicker": { "visible": true }
+      "themePicker": { "visible": true },
+      "lyrics": { "visible": true, "placement": "glass-dock", "layer": "front", "motion": "float-up", "style": "glass-card" }
     },
     "animations": {
       "drawer": "fade-scale",
@@ -130,7 +133,7 @@
       "type": "grid",
       "columns": "minmax(0, 1fr) 138px",
       "variant": "stack",
-      "viewport": { "width": 520, "height": 300 }
+      "viewport": { "width": 560, "height": 360 }
     },
     "background": {
       "kind": "paperStack",
@@ -140,11 +143,12 @@
     "blocks": {
       "controls": {
         "variant": "stacked",
-        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "layers-3", "themes": "palette", "close": "x" },
+        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "layers-3", "themes": "palette", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "bottomSheet" },
-      "themePicker": { "visible": true }
+      "themePicker": { "visible": true },
+      "lyrics": { "visible": true, "placement": "stack-crawl", "layer": "behind", "motion": "crawl", "style": "crawl" }
     },
     "animations": {
       "drawer": "slide-up",
@@ -168,7 +172,7 @@
       "type": "grid",
       "columns": "minmax(0, 1fr) 140px",
       "variant": "signal",
-      "viewport": { "width": 520, "height": 300 }
+      "viewport": { "width": 560, "height": 360 }
     },
     "background": {
       "kind": "signal",
@@ -178,11 +182,12 @@
     "blocks": {
       "controls": {
         "variant": "signal-strip",
-        "icons": { "previous": "skip-back", "play": "radio", "pause": "pause", "next": "skip-forward", "quickPicks": "list-music", "themes": "palette", "close": "x" },
+        "icons": { "previous": "skip-back", "play": "radio", "pause": "pause", "next": "skip-forward", "quickPicks": "list-music", "themes": "palette", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "sidePanel" },
-      "themePicker": { "visible": true }
+      "themePicker": { "visible": true },
+      "lyrics": { "visible": true, "placement": "signal-dock", "layer": "front", "motion": "drop", "style": "readout" }
     },
     "animations": {
       "drawer": "slide-up",

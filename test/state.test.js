@@ -45,6 +45,65 @@ test("normalizes quick picks into player state", () => {
   ]);
 });
 
+test("normalizes synced lyrics into previous current and next lines", () => {
+  const state = normalizePlayerState({
+    currentSeconds: 42,
+    durationSeconds: 120,
+    lyrics: {
+      lines: [
+        { text: "First line", startSeconds: 0 },
+        { text: "Current line", startSeconds: 40 },
+        { text: "Next line", startSeconds: 55 },
+      ],
+    },
+  });
+
+  assert.equal(state.lyrics.previous, "First line");
+  assert.equal(state.lyrics.current, "Current line");
+  assert.equal(state.lyrics.next, "Next line");
+  assert.equal(state.lyrics.isSynced, true);
+});
+
+test("keeps repeated synced lyric lines because each timestamp is meaningful", () => {
+  const state = normalizePlayerState({
+    currentSeconds: 63,
+    durationSeconds: 120,
+    lyrics: {
+      lines: [
+        { text: "Same chorus", startSeconds: 10 },
+        { text: "Bridge", startSeconds: 40 },
+        { text: "Same chorus", startSeconds: 60 },
+        { text: "Outro", startSeconds: 80 },
+      ],
+    },
+  });
+
+  assert.equal(state.lyrics.previous, "Bridge");
+  assert.equal(state.lyrics.current, "Same chorus");
+  assert.equal(state.lyrics.next, "Outro");
+  assert.equal(state.lyrics.lines.length, 4);
+});
+
+test("estimates current lyrics when timestamps are unavailable", () => {
+  const state = normalizePlayerState({
+    currentSeconds: 50,
+    durationSeconds: 100,
+    lyrics: {
+      lines: [
+        { text: "First line" },
+        { text: "Second line" },
+        { text: "Third line" },
+        { text: "Fourth line" },
+      ],
+    },
+  });
+
+  assert.equal(state.lyrics.previous, "Second line");
+  assert.equal(state.lyrics.current, "Third line");
+  assert.equal(state.lyrics.next, "Fourth line");
+  assert.equal(state.lyrics.isSynced, false);
+});
+
 test("trims track metadata and keeps playback fields", () => {
   const state = normalizePlayerState({
     title: "  Midnight City  ",

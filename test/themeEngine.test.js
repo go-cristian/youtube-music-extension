@@ -38,8 +38,8 @@ test("converts theme tokens into css variables", () => {
 
   assert.match(css, /--ytmp-surface: #120f14;/);
   assert.match(css, /--ytmp-accent: #ef476f;/);
-  assert.match(css, /--ytmp-window-width: 380px;/);
-  assert.match(css, /--ytmp-window-height: 390px;/);
+  assert.match(css, /--ytmp-window-width: 400px;/);
+  assert.match(css, /--ytmp-window-height: 480px;/);
 });
 
 test("normalizes control icons and labels for themes", () => {
@@ -47,6 +47,7 @@ test("normalizes control icons and labels for themes", () => {
 
   assert.equal(theme.blocks.controls.variant, "console-keys");
   assert.equal(theme.blocks.controls.icons.pause, "pause");
+  assert.equal(theme.blocks.controls.icons.about, "info");
   assert.equal(theme.blocks.controls.labels.quickPicks, "");
 });
 
@@ -64,11 +65,11 @@ test("normalizes dynamic background definitions for themes", () => {
 });
 
 test("defines preferred PiP viewport sizes per theme", () => {
-  assert.deepEqual(getTheme("console").layout.viewport, { width: 500, height: 280 });
-  assert.deepEqual(getTheme("tile").layout.viewport, { width: 380, height: 390 });
-  assert.deepEqual(getTheme("glass").layout.viewport, { width: 540, height: 340 });
-  assert.deepEqual(getTheme("stack").layout.viewport, { width: 520, height: 300 });
-  assert.deepEqual(getTheme("signal").layout.viewport, { width: 520, height: 300 });
+  assert.deepEqual(getTheme("console").layout.viewport, { width: 540, height: 340 });
+  assert.deepEqual(getTheme("tile").layout.viewport, { width: 400, height: 480 });
+  assert.deepEqual(getTheme("glass").layout.viewport, { width: 590, height: 380 });
+  assert.deepEqual(getTheme("stack").layout.viewport, { width: 560, height: 360 });
+  assert.deepEqual(getTheme("signal").layout.viewport, { width: 560, height: 360 });
 });
 
 test("defines animated quick pick overlay modes for all themes", () => {
@@ -77,6 +78,16 @@ test("defines animated quick pick overlay modes for all themes", () => {
   assert.equal(getTheme("glass").blocks.quickPicks.mode, "drawer");
   assert.equal(getTheme("stack").blocks.quickPicks.mode, "bottomSheet");
   assert.equal(getTheme("signal").blocks.quickPicks.mode, "sidePanel");
+});
+
+test("defines stylable lyrics placement for all themes", () => {
+  assert.equal(getTheme("console").blocks.lyrics.placement, "console-dock");
+  assert.equal(getTheme("tile").blocks.lyrics.placement, "tile-dock");
+  assert.equal(getTheme("glass").blocks.lyrics.placement, "glass-dock");
+  assert.equal(getTheme("stack").blocks.lyrics.placement, "stack-crawl");
+  assert.equal(getTheme("stack").blocks.lyrics.style, "crawl");
+  assert.equal(getTheme("signal").blocks.lyrics.placement, "signal-dock");
+  assert.equal(getTheme("signal").blocks.lyrics.motion, "drop");
 });
 
 test("loads and saves selected theme id through storage", async () => {
