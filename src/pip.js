@@ -7,7 +7,7 @@ import {
 } from "./themeEngine.js";
 import { renderIcon } from "./icons.js";
 
-const EXTENSION_VERSION = "0.1.1";
+const EXTENSION_VERSION = "1.2.0";
 const STORE_REVIEW_URL = "https://chromewebstore.google.com/detail/youtube-music-floating-pl/cfnbddbllmmnedlgalnppbnfkmpijlda/reviews";
 const GITHUB_URL = "https://github.com/go-cristian/youtube-music-extension";
 const PRIVACY_URL = "https://github.com/go-cristian/youtube-music-extension/blob/main/PRIVACY.md";
