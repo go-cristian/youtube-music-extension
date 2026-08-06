@@ -117,7 +117,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     elements.themePicker.innerHTML = getThemeOptions()
       .map((theme) => `
         <button class="${theme.id === currentTheme.id ? "active" : ""}" data-theme-id="${theme.id}">
-          ${theme.shortName}
+          <span>${theme.name}</span>
         </button>
       `)
       .join("");
@@ -816,29 +816,36 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         .theme-sheet {
           animation: slide-up 180ms ease-out;
           background: var(--ytmp-surface);
-          border-top: 1px solid rgba(255,255,255,.12);
-          bottom: 0;
           box-sizing: border-box;
-          left: 0;
-          padding: 12px;
+          display: grid;
+          grid-template-rows: auto minmax(0, 1fr);
+          inset: 0;
+          padding: 16px;
           position: absolute;
-          right: 0;
           z-index: 3;
         }
         .theme-picker {
-          display: flex;
-          gap: 6px;
-          overflow-x: auto;
+          align-content: start;
+          display: grid;
+          gap: 8px;
+          overflow-y: auto;
+          padding-right: 2px;
         }
         .theme-picker button {
-          flex: 0 0 auto;
-          min-width: 76px;
-          padding: 7px 8px;
+          justify-content: space-between;
+          min-height: 44px;
+          padding: 10px 12px;
+          text-align: left;
+          width: 100%;
         }
         .theme-picker button.active {
           background: var(--ytmp-accent);
           color: #181818;
           font-weight: 800;
+        }
+        .theme-picker button.active::after {
+          content: "●";
+          font-size: 10px;
         }
         @keyframes pulse-soft {
           0%, 100% { box-shadow: 0 0 0 rgba(124,255,138,0); }
