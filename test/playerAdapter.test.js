@@ -8,6 +8,7 @@ import {
   readQuickPicks,
   readFirstAttribute,
   readFirstText,
+  revealPlayerPageForLyrics,
   seekMediaToSeconds,
   timedLyricsDataToLines,
 } from "../src/playerAdapter.js";
@@ -56,6 +57,19 @@ function lyricLine(text, attributes = {}) {
   };
 }
 
+function clickableElement() {
+  let clicks = 0;
+
+  return {
+    get clicks() {
+      return clicks;
+    },
+    click() {
+      clicks += 1;
+    },
+  };
+}
+
 test("readFirstText returns the first non-empty selector match", () => {
   const doc = documentWithMatches({
     ".empty": element("   "),
@@ -97,6 +111,37 @@ test("readCurrentVideoId falls back to the player bar song link", () => {
   assert.equal(readCurrentVideoId(doc, { href: "https://music.youtube.com/" }), "xyz789");
 });
 
+test("readCurrentVideoId falls back to YouTube Music element state", () => {
+  const playerBar = {
+    data: {
+      playerPageInfo: {
+        playerPageSongInfo: {
+          endpoint: {
+            watchEndpoint: {
+              videoId: "stateabc123",
+            },
+          },
+        },
+      },
+    },
+  };
+  const doc = documentWithMatches({
+    "ytmusic-player-bar": playerBar,
+  });
+
+  assert.equal(readCurrentVideoId(doc, { href: "https://music.youtube.com/" }), "stateabc123");
+});
+
+test("revealPlayerPageForLyrics clicks the player metadata area", () => {
+  const target = clickableElement();
+  const doc = documentWithMatches({
+    "ytmusic-player-bar .content-info-wrapper": target,
+  });
+
+  assert.equal(revealPlayerPageForLyrics(doc), true);
+  assert.equal(target.clicks, 1);
+});
+
 test("readLyrics extracts timed lines from a lyrics renderer", () => {
   const lyricsRenderer = {
     querySelectorAll(selector) {
@@ -120,6 +165,44 @@ test("readLyrics extracts timed lines from a lyrics renderer", () => {
       { text: "Current line", startSeconds: 30 },
     ],
   });
+});
+
+test("readLyrics ignores non-lyrics description shelves", () => {
+  const descriptionShelf = {
+    querySelectorAll() {
+      return [
+        lyricLine("Song title"),
+        lyricLine("3:42"),
+        lyricLine("Another recommendation"),
+      ];
+    },
+  };
+  const doc = documentWithMatches({
+    "ytmusic-player-page ytmusic-description-shelf-renderer": descriptionShelf,
+  });
+
+  assert.deepEqual(readLyrics(doc), { lines: [] });
+});
+
+test("readLyrics ignores untimed text from lyrics containers", () => {
+  const lyricsRenderer = {
+    querySelectorAll(selector) {
+      if (selector !== "yt-formatted-string") {
+        return [];
+      }
+
+      return [
+        lyricLine("Song title"),
+        lyricLine("3:42"),
+        lyricLine("Related track"),
+      ];
+    },
+  };
+  const doc = documentWithMatches({
+    "ytmusic-lyrics-renderer": lyricsRenderer,
+  });
+
+  assert.deepEqual(readLyrics(doc), { lines: [] });
 });
 
 test("timedLyricsDataToLines converts YouTube Music timed lyrics", () => {
@@ -194,6 +277,24 @@ test("adapter prefers synced lyrics from YouTube Music endpoints", async () => {
   assert.equal(state.lyrics.current, "Now");
   assert.equal(state.lyrics.next, "After");
   assert.equal(state.lyrics.isSynced, true);
+});
+
+test("adapter reveals the full player once when track metadata has no video id yet", () => {
+  const target = clickableElement();
+  const doc = documentWithMatches({
+    "ytmusic-player-bar .title": element("A song"),
+    "ytmusic-player-bar .byline": element("An artist"),
+    "ytmusic-player-bar .content-info-wrapper": target,
+  });
+  const adapter = createPlayerAdapter(doc, {
+    fetchImpl: null,
+    location: { href: "https://music.youtube.com/" },
+  });
+
+  adapter.getState();
+  adapter.getState();
+
+  assert.equal(target.clicks, 1);
 });
 
 test("seekMediaToSeconds moves the media element inside its duration", () => {

@@ -41,7 +41,6 @@ const SELECTORS = {
   lyrics: [
     "ytmusic-lyrics-renderer",
     "ytmusic-tab-renderer[page-type='MUSIC_PAGE_TYPE_TRACK_LYRICS']",
-    "ytmusic-player-page ytmusic-description-shelf-renderer",
     "#lyrics",
   ],
   lyricLine: [
@@ -57,6 +56,16 @@ const SELECTORS = {
   currentSongLink: [
     "ytmusic-player-bar a[href*='watch?v=']",
     ".ytmusic-player-bar a[href*='watch?v=']",
+  ],
+  currentSongHosts: [
+    "ytmusic-player-bar",
+    "ytmusic-app",
+  ],
+  playerPageActivation: [
+    "ytmusic-player-bar .content-info-wrapper",
+    "ytmusic-player-bar .song-info",
+    "ytmusic-player-bar #thumbnail",
+    "ytmusic-player-bar img.image",
   ],
 };
 
@@ -181,7 +190,7 @@ function readLyricsFromContainer(container) {
         text: text.trim(),
         startSeconds: readLineStartSeconds(lineElement),
       })))
-    .filter((line) => textLooksLikeLyrics(line.text));
+    .filter((line) => textLooksLikeLyrics(line.text) && Number.isFinite(line.startSeconds));
 
   return {
     lines,
@@ -206,6 +215,64 @@ function readVideoIdFromUrl(value) {
   }
 }
 
+function findVideoIdInObject(value, depth = 0, seen = new Set()) {
+  if (!value || depth > 6 || seen.has(value)) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return /^[a-zA-Z0-9_-]{11}$/.test(value) ? value : readVideoIdFromUrl(value);
+  }
+
+  if (typeof value !== "object") {
+    return "";
+  }
+
+  seen.add(value);
+
+  const directKeys = ["videoId", "currentVideoId", "playlistItemVideoId"];
+
+  for (const key of directKeys) {
+    const videoId = findVideoIdInObject(value[key], depth + 1, seen);
+
+    if (videoId) {
+      return videoId;
+    }
+  }
+
+  for (const key of Object.keys(value)) {
+    if (key.startsWith("__") || key === "parentNode" || key === "parentElement" || key === "ownerDocument") {
+      continue;
+    }
+
+    const videoId = findVideoIdInObject(value[key], depth + 1, seen);
+
+    if (videoId) {
+      return videoId;
+    }
+  }
+
+  return "";
+}
+
+function readCurrentVideoIdFromElementState(doc) {
+  for (const element of findAll(doc, SELECTORS.currentSongHosts)) {
+    const videoId = findVideoIdInObject({
+      data: element.data,
+      playerPageInfo: element.playerPageInfo,
+      queue: element.queue,
+      selectedItem: element.selectedItem,
+      watchEndpoint: element.watchEndpoint,
+    });
+
+    if (videoId) {
+      return videoId;
+    }
+  }
+
+  return "";
+}
+
 export function readCurrentVideoId(doc, locationValue = globalThis.location) {
   const urlVideoId = readVideoIdFromUrl(locationValue?.href ?? "");
 
@@ -219,6 +286,12 @@ export function readCurrentVideoId(doc, locationValue = globalThis.location) {
     if (videoId) {
       return videoId;
     }
+  }
+
+  const stateVideoId = readCurrentVideoIdFromElementState(doc);
+
+  if (stateVideoId) {
+    return stateVideoId;
   }
 
   return "";
@@ -302,6 +375,24 @@ function findLyricsBrowseId(response) {
   return browseId;
 }
 
+function readLyricsBrowseIdFromElementState(doc) {
+  for (const element of findAll(doc, SELECTORS.currentSongHosts)) {
+    const browseId = findLyricsBrowseId({
+      data: element.data,
+      playerPageInfo: element.playerPageInfo,
+      queue: element.queue,
+      selectedItem: element.selectedItem,
+      tabs: element.tabs,
+    });
+
+    if (browseId) {
+      return browseId;
+    }
+  }
+
+  return "";
+}
+
 function findTimedLyricsData(response) {
   let timedLyricsData = [];
 
@@ -357,7 +448,7 @@ function createTimedLyricsLoader(doc, fetchImpl = globalThis.fetch?.bind(globalT
       context: webContext,
       videoId,
     });
-    const browseId = findLyricsBrowseId(nextResponse);
+    const browseId = readLyricsBrowseIdFromElementState(doc) || findLyricsBrowseId(nextResponse);
 
     if (!browseId) {
       return { lines: [] };
@@ -476,6 +567,10 @@ function clickFirst(doc, selectors) {
   return Boolean(element);
 }
 
+export function revealPlayerPageForLyrics(doc) {
+  return clickFirst(doc, SELECTORS.playerPageActivation);
+}
+
 function findMediaElement(doc) {
   return doc.querySelector("video,audio");
 }
@@ -499,17 +594,27 @@ export function seekMediaToSeconds(doc, seconds) {
 
 export function createPlayerAdapter(doc = document, options = {}) {
   const timedLyrics = createTimedLyricsLoader(doc, options.fetchImpl);
+  let activatedPlayerPageFor = "";
 
   return {
     getState() {
       const times = readTimes(doc);
       const videoId = readCurrentVideoId(doc, options.location);
+      const title = readFirstText(doc, SELECTORS.title);
+      const artist = readFirstText(doc, SELECTORS.artist);
+      const trackKey = videoId || `${title}|${artist}`;
+
+      if (!videoId && trackKey !== "|" && trackKey !== activatedPlayerPageFor) {
+        activatedPlayerPageFor = trackKey;
+        revealPlayerPageForLyrics(doc);
+      }
+
       const syncedLyrics = timedLyrics.get(videoId);
       const fallbackLyrics = readLyrics(doc);
 
       return normalizePlayerState({
-        title: readFirstText(doc, SELECTORS.title),
-        artist: readFirstText(doc, SELECTORS.artist),
+        title,
+        artist,
         artworkUrl: readFirstAttribute(doc, SELECTORS.artwork, "src"),
         isPlaying: readPlaybackState(doc),
         currentTime: times.currentTime,
