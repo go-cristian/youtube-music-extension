@@ -42,7 +42,7 @@ npm run assets
 npm run package
 ```
 
-- The generated upload package is `dist/youtube-music-floating-player-1.2.1.zip`.
+- The generated upload package is `dist/youtube-music-floating-player-1.3.0.zip`.
 - Store screenshots live in `store-assets/screenshots/`.
 - Chrome Web Store screenshots should be `1280x800`.
 - When cropping screenshots from full desktop captures, preserve the mini player in the lower-right area.

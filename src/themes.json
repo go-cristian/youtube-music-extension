@@ -26,12 +26,13 @@
     "blocks": {
       "controls": {
         "variant": "console-keys",
-        "icons": { "previous": "skip-back", "play": "play", "pause": "pause", "next": "skip-forward", "quickPicks": "terminal", "themes": "palette", "about": "info", "close": "x" },
+        "icons": { "previous": "skip-back", "play": "play", "pause": "pause", "next": "skip-forward", "quickPicks": "terminal", "themes": "palette", "compact": "minimize-2", "full": "maximize-2", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "sidePanel" },
       "themePicker": { "visible": true },
-      "lyrics": { "visible": true, "placement": "console-dock", "layer": "front", "motion": "rise", "style": "terminal" }
+      "lyrics": { "visible": true, "placement": "console-dock", "layer": "front", "motion": "rise", "style": "terminal" },
+      "compactPlayer": { "visible": true, "viewport": { "width": 230, "height": 112 } }
     },
     "animations": {
       "drawer": "slide-up",
@@ -65,12 +66,13 @@
     "blocks": {
       "controls": {
         "variant": "floating-icons",
-        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "list-music", "themes": "palette", "about": "info", "close": "x" },
+        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "list-music", "themes": "palette", "compact": "minimize-2", "full": "maximize-2", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "bottomSheet" },
       "themePicker": { "visible": true },
-      "lyrics": { "visible": true, "placement": "tile-dock", "layer": "front", "motion": "rise", "style": "soft-card" }
+      "lyrics": { "visible": true, "placement": "tile-dock", "layer": "front", "motion": "rise", "style": "soft-card" },
+      "compactPlayer": { "visible": true, "viewport": { "width": 238, "height": 112 } }
     },
     "animations": {
       "drawer": "scale-soft",
@@ -104,12 +106,13 @@
     "blocks": {
       "controls": {
         "variant": "orbital",
-        "icons": { "previous": "chevron-left", "play": "disc-3", "pause": "pause", "next": "chevron-right", "quickPicks": "sparkles", "themes": "palette", "about": "info", "close": "x" },
+        "icons": { "previous": "chevron-left", "play": "disc-3", "pause": "pause", "next": "chevron-right", "quickPicks": "sparkles", "themes": "palette", "compact": "minimize-2", "full": "maximize-2", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "drawer" },
       "themePicker": { "visible": true },
-      "lyrics": { "visible": true, "placement": "glass-dock", "layer": "front", "motion": "float-up", "style": "glass-card" }
+      "lyrics": { "visible": true, "placement": "glass-dock", "layer": "front", "motion": "float-up", "style": "glass-card" },
+      "compactPlayer": { "visible": true, "viewport": { "width": 250, "height": 112 } }
     },
     "animations": {
       "drawer": "fade-scale",
@@ -143,12 +146,13 @@
     "blocks": {
       "controls": {
         "variant": "stacked",
-        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "layers-3", "themes": "palette", "about": "info", "close": "x" },
+        "icons": { "previous": "chevron-left", "play": "play", "pause": "pause", "next": "chevron-right", "quickPicks": "layers-3", "themes": "palette", "compact": "minimize-2", "full": "maximize-2", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "bottomSheet" },
       "themePicker": { "visible": true },
-      "lyrics": { "visible": true, "placement": "stack-crawl", "layer": "behind", "motion": "crawl", "style": "crawl" }
+      "lyrics": { "visible": true, "placement": "stack-crawl", "layer": "behind", "motion": "crawl", "style": "crawl" },
+      "compactPlayer": { "visible": true, "viewport": { "width": 240, "height": 112 } }
     },
     "animations": {
       "drawer": "slide-up",
@@ -182,12 +186,13 @@
     "blocks": {
       "controls": {
         "variant": "signal-strip",
-        "icons": { "previous": "skip-back", "play": "radio", "pause": "pause", "next": "skip-forward", "quickPicks": "list-music", "themes": "palette", "about": "info", "close": "x" },
+        "icons": { "previous": "skip-back", "play": "radio", "pause": "pause", "next": "skip-forward", "quickPicks": "list-music", "themes": "palette", "compact": "minimize-2", "full": "maximize-2", "about": "info", "close": "x" },
         "labels": { "previous": "", "play": "", "pause": "", "next": "", "quickPicks": "", "themes": "", "close": "" }
       },
       "quickPicks": { "visible": true, "mode": "sidePanel" },
       "themePicker": { "visible": true },
-      "lyrics": { "visible": true, "placement": "signal-dock", "layer": "front", "motion": "drop", "style": "readout" }
+      "lyrics": { "visible": true, "placement": "signal-dock", "layer": "front", "motion": "drop", "style": "readout" },
+      "compactPlayer": { "visible": true, "viewport": { "width": 250, "height": 112 } }
     },
     "animations": {
       "drawer": "slide-up",

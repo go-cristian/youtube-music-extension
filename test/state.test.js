@@ -15,6 +15,8 @@ test("normalizes missing track metadata into an empty player state", () => {
 
   assert.equal(state.title, "");
   assert.equal(state.artist, "");
+  assert.equal(state.album, "");
+  assert.equal(state.byline, "");
   assert.equal(state.artworkUrl, "");
   assert.equal(state.isPlaying, false);
   assert.equal(state.progressText, "");
@@ -116,6 +118,8 @@ test("trims track metadata and keeps playback fields", () => {
 
   assert.equal(state.title, "Midnight City");
   assert.equal(state.artist, "M83");
+  assert.equal(state.album, "");
+  assert.equal(state.byline, "M83");
   assert.equal(state.artworkUrl, "https://example.test/art.jpg");
   assert.equal(state.isPlaying, true);
   assert.equal(state.progressText, "1:12 / 4:03");
@@ -123,6 +127,18 @@ test("trims track metadata and keeps playback fields", () => {
   assert.equal(state.durationSeconds, 243);
   assert.equal(formatHoverLabel(state), "Midnight City - M83");
   assert.equal(hasTrackMetadata(state), true);
+});
+
+test("extracts artist and album from a YouTube Music byline", () => {
+  const state = normalizePlayerState({
+    title: "Timeless",
+    artist: "Of Mice & Men • Timeless • 2021",
+  });
+
+  assert.equal(state.artist, "Of Mice & Men");
+  assert.equal(state.album, "Timeless");
+  assert.equal(state.byline, "Of Mice & Men • Timeless • 2021");
+  assert.equal(formatHoverLabel(state), "Timeless - Of Mice & Men");
 });
 
 test("formats progress only when both times are available", () => {

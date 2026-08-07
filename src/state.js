@@ -52,6 +52,18 @@ function normalizeLyricLines(input = []) {
     .filter((line) => line.text);
 }
 
+function splitTrackByline(value = "") {
+  const parts = String(value)
+    .split("•")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return {
+    artist: parts[0] ?? String(value).trim(),
+    album: parts[1] ?? "",
+  };
+}
+
 function findCurrentLyricIndex(lines, currentSeconds, durationSeconds) {
   if (!lines.length) {
     return -1;
@@ -96,7 +108,10 @@ function normalizeLyrics(input = {}, currentSeconds = 0, durationSeconds = 0) {
 
 export function normalizePlayerState(input = {}) {
   const title = String(input.title ?? "").trim();
-  const artist = String(input.artist ?? "").trim();
+  const byline = String(input.artist ?? "").trim();
+  const metadata = splitTrackByline(byline);
+  const artist = String(input.artistName ?? metadata.artist).trim();
+  const album = String(input.album ?? metadata.album).trim();
   const artworkUrl = String(input.artworkUrl ?? "").trim();
   const currentTime = String(input.currentTime ?? "").trim();
   const duration = String(input.duration ?? "").trim();
@@ -106,6 +121,8 @@ export function normalizePlayerState(input = {}) {
   return {
     title,
     artist,
+    album,
+    byline,
     artworkUrl,
     isPlaying: Boolean(input.isPlaying),
     progressText: formatProgressText(currentTime, duration),

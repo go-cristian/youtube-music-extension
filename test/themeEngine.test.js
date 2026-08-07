@@ -48,6 +48,8 @@ test("normalizes control icons and labels for themes", () => {
   assert.equal(theme.blocks.controls.variant, "console-keys");
   assert.equal(theme.blocks.controls.icons.pause, "pause");
   assert.equal(theme.blocks.controls.icons.about, "info");
+  assert.equal(theme.blocks.controls.icons.compact, "minimize-2");
+  assert.equal(theme.blocks.controls.icons.full, "maximize-2");
   assert.equal(theme.blocks.controls.labels.quickPicks, "");
 });
 
@@ -70,6 +72,14 @@ test("defines preferred PiP viewport sizes per theme", () => {
   assert.deepEqual(getTheme("glass").layout.viewport, { width: 590, height: 380 });
   assert.deepEqual(getTheme("stack").layout.viewport, { width: 560, height: 360 });
   assert.deepEqual(getTheme("signal").layout.viewport, { width: 560, height: 360 });
+});
+
+test("defines compact PiP viewport sizes per theme", () => {
+  assert.deepEqual(getTheme("console").blocks.compactPlayer.viewport, { width: 230, height: 112 });
+  assert.deepEqual(getTheme("tile").blocks.compactPlayer.viewport, { width: 238, height: 112 });
+  assert.deepEqual(getTheme("glass").blocks.compactPlayer.viewport, { width: 250, height: 112 });
+  assert.deepEqual(getTheme("stack").blocks.compactPlayer.viewport, { width: 240, height: 112 });
+  assert.deepEqual(getTheme("signal").blocks.compactPlayer.viewport, { width: 250, height: 112 });
 });
 
 test("defines animated quick pick overlay modes for all themes", () => {

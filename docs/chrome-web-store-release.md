@@ -2,10 +2,10 @@
 
 ## Package
 
-- Version: `1.2.1`
-- Package: `dist/youtube-music-floating-player-1.2.1.zip`
+- Version: `1.3.0`
+- Package: `dist/youtube-music-floating-player-1.3.0.zip`
 - Extension name: YouTube Music Floating Player
-- Short description: Control YouTube Music from a themed always-on-top mini player.
+- Short description: Control YouTube Music from a modern floating mini player.
 
 ## Assets
 
@@ -24,9 +24,11 @@
 
 ## Store Listing Draft
 
-YouTube Music Floating Player adds a modern mini player for YouTube Music with play/pause, previous/next, seek controls, Quick Picks, and configurable visual themes. It uses Chromium Document Picture-in-Picture when available so the player can stay visible above other windows.
+Control YouTube Music from a modern floating mini player.
 
-The extension does not collect, sell, or transmit personal data. Theme preference is saved locally in the browser.
+YouTube Music Floating Player adds a themed always-on-top player for YouTube Music using Chromium's Document Picture-in-Picture support. It includes playback controls, previous/next, seek, Quick Picks, synced lyrics when available, multiple visual themes, and a compact mode for quick playback control.
+
+The extension only runs on music.youtube.com. It does not collect, sell, or transmit personal data. Theme preferences are stored locally in your browser.
 
 ## Screenshot Checklist
 
@@ -54,7 +56,7 @@ The automated flow should:
 2. Run `npm run typecheck`, `npm run lint`, `npm run build`, and `npm test`.
 3. Run `npm run package`.
 4. Request an OAuth access token.
-5. Upload `dist/youtube-music-floating-player-1.2.1.zip`.
+5. Upload `dist/youtube-music-floating-player-1.3.0.zip`.
 6. Publish the uploaded draft, which submits it for Chrome Web Store review.
 
 Initial store listing, privacy fields, and first manual publishing setup still need to happen in the Chrome Web Store Developer Dashboard.

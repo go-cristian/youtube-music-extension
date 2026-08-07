@@ -2,7 +2,7 @@ import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises"
 
 const root = new URL("../", import.meta.url);
 const distDir = new URL("../dist/", import.meta.url);
-const packageName = "youtube-music-floating-player-1.2.1.zip";
+const packageName = "youtube-music-floating-player-1.3.0.zip";
 const packagePath = new URL(packageName, distDir);
 const entries = [
   "manifest.json",

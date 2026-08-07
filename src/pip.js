@@ -7,7 +7,7 @@ import {
 } from "./themeEngine.js";
 import { renderIcon } from "./icons.js";
 
-const EXTENSION_VERSION = "1.2.1";
+const EXTENSION_VERSION = "1.3.0";
 const STORE_REVIEW_URL = "https://chromewebstore.google.com/detail/youtube-music-floating-pl/cfnbddbllmmnedlgalnppbnfkmpijlda/reviews";
 const GITHUB_URL = "https://github.com/go-cristian/youtube-music-extension";
 const PRIVACY_URL = "https://github.com/go-cristian/youtube-music-extension/blob/main/PRIVACY.md";
@@ -19,10 +19,12 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
   let isDrawerOpen = false;
   let isThemePickerOpen = false;
   let isAboutOpen = false;
+  let isCompact = false;
   let currentTheme = getTheme("tile");
   let currentArtworkUrl = "";
   let currentArtworkAccent = currentTheme.tokens.artworkAccent;
   let currentLyricKey = "";
+  const compactLineKeys = { title: "", meta: "" };
 
   function isSupported() {
     return "documentPictureInPicture" in window;
@@ -41,13 +43,25 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     const controls = currentTheme.blocks.controls;
     const playPauseKey = state.isPlaying ? "pause" : "play";
 
+    elements.player.hidden = isCompact;
+    elements.compactPlayer.hidden = !isCompact;
+    elements.lyrics.hidden = isCompact || !lyrics.visible || !lyricState.current;
+    elements.drawer.hidden = isCompact || !shouldShowQuickPicks;
+    elements.themeSheet.hidden = isCompact || !isThemePickerOpen;
+    elements.aboutSheet.hidden = isCompact || !isAboutOpen;
     elements.title.textContent = state.title || "YouTube Music";
-    elements.artist.textContent = state.artist || "";
+    elements.artist.textContent = state.byline || state.artist || "";
+    updateCompactMetadata(state);
     setControl(elements.previous, controls, "previous");
     setControl(elements.playPause, controls, playPauseKey);
     setControl(elements.next, controls, "next");
+    setControl(elements.compactPrevious, controls, "previous");
+    setControl(elements.compactPlayPause, controls, playPauseKey);
+    setControl(elements.compactNext, controls, "next");
+    setControl(elements.fullButton, controls, "full");
     setControl(elements.drawerButton, controls, "quickPicks");
     setControl(elements.themeButton, controls, "themes");
+    setControl(elements.compactButton, controls, "compact");
     setControl(elements.aboutButton, controls, "about");
     setControl(elements.closeDrawer, controls, "close");
     setControl(elements.closeThemePicker, controls, "close");
@@ -55,18 +69,13 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     elements.progress.textContent = state.progressText || "";
     elements.seek.disabled = state.durationSeconds <= 0;
     elements.seek.max = String(Math.max(state.durationSeconds, 1));
-    elements.drawer.hidden = !shouldShowQuickPicks;
     elements.drawer.dataset.mode = quickPicksMode;
-    elements.themeSheet.hidden = !isThemePickerOpen;
-    elements.aboutSheet.hidden = !isAboutOpen;
-    elements.lyrics.hidden = !lyrics.visible || !lyricState.current;
     elements.lyrics.dataset.placement = lyrics.placement;
     elements.lyrics.dataset.layer = lyrics.layer;
     elements.lyrics.dataset.motion = lyrics.motion;
     elements.lyrics.dataset.style = lyrics.style;
     elements.drawerButton.hidden = false;
     elements.emptyHint.hidden = hasTrack;
-    elements.playerControls.hidden = false;
     elements.themeStyle.textContent = `:root {\n${themeToCssVariables({
       ...currentTheme,
       tokens: {
@@ -75,6 +84,9 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
       },
     })}\n}`;
     elements.player.className = `player theme-${currentTheme.layout.variant} controls-${controls.variant}`;
+    elements.compactPlayer.className = `compact-player controls-${controls.variant}`;
+    elements.compactPlayer.dataset.background = currentTheme.background.kind;
+    elements.compactPlayer.dataset.motion = currentTheme.background.animation;
     elements.player.dataset.background = currentTheme.background.kind;
     elements.player.dataset.motion = currentTheme.background.animation;
 
@@ -110,7 +122,57 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     button.innerHTML = getControlContent(controls, key);
   }
 
+  function updateCompactMetadata(state) {
+    const compactLabel = [state.title || "YouTube Music", state.artist, state.album]
+      .filter(Boolean)
+      .join(" • ");
+
+    updateCompactLine("title", elements.compactTitle, elements.compactTitleText, compactLabel);
+    updateCompactLine("meta", elements.compactMeta, elements.compactMetaText, "");
+  }
+
+  function updateCompactLine(key, container, textElement, text) {
+    const compactWidth = isCompact ? container.clientWidth : 0;
+    const nextKey = `${text}|${compactWidth}|${isCompact}`;
+
+    if (nextKey === compactLineKeys[key]) {
+      return;
+    }
+
+    compactLineKeys[key] = nextKey;
+    textElement.textContent = text;
+    container.hidden = !text;
+    container.dataset.scroll = "false";
+    container.style.removeProperty("--compact-title-shift");
+    container.style.removeProperty("--compact-title-duration");
+
+    if (!isCompact || !text) {
+      return;
+    }
+
+    pipWindow.requestAnimationFrame(() => {
+      const overflow = Math.ceil(textElement.scrollWidth - container.clientWidth);
+
+      if (overflow <= 2) {
+        return;
+      }
+
+      const travelSeconds = Math.min(14, Math.max(4, overflow / 18));
+
+      container.style.setProperty("--compact-title-shift", `-${overflow}px`);
+      container.style.setProperty("--compact-title-duration", `${travelSeconds + 6}s`);
+      container.dataset.scroll = "true";
+    });
+  }
+
   function getPreferredWindowSize(theme) {
+    if (isCompact) {
+      return {
+        width: theme.blocks.compactPlayer.viewport.width,
+        height: theme.blocks.compactPlayer.viewport.height,
+      };
+    }
+
     return {
       width: theme.layout.viewport.width,
       height: theme.layout.viewport.height,
@@ -289,19 +351,27 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           color: var(--ytmp-text-primary);
           font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
-        .player {
+        .player,
+        .compact-player {
           box-sizing: border-box;
+          position: relative;
+          overflow: hidden;
+          width: var(--ytmp-window-width);
+        }
+        .player {
           display: grid;
           gap: 16px;
           grid-template-columns: var(--ytmp-columns, minmax(0, 1fr) 176px);
           height: var(--ytmp-window-height);
           margin: 0 auto 24px;
           padding: 14px 16px;
-          position: relative;
-          overflow: hidden;
-          width: var(--ytmp-window-width);
         }
-        .player > * {
+        .player[hidden],
+        .compact-player[hidden] {
+          display: none;
+        }
+        .player > *,
+        .compact-player > * {
           position: relative;
           z-index: 1;
         }
@@ -311,7 +381,8 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         .lyrics[data-layer="front"] {
           z-index: 2;
         }
-        .player::before {
+        .player::before,
+        .compact-player::before {
           content: "";
           inset: 0;
           opacity: .95;
@@ -322,12 +393,25 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         .player[data-background="solid"]::before {
           background: var(--ytmp-surface);
         }
+        .compact-player[data-background="solid"]::before {
+          background: var(--ytmp-surface);
+        }
         .player[data-background="transparent"]::before {
           background:
             radial-gradient(circle at 78% 16%, color-mix(in srgb, var(--ytmp-artwork-accent) 35%, transparent), transparent 34%),
             color-mix(in srgb, var(--ytmp-surface) 76%, transparent);
         }
+        .compact-player[data-background="transparent"]::before {
+          background:
+            radial-gradient(circle at 78% 16%, color-mix(in srgb, var(--ytmp-artwork-accent) 35%, transparent), transparent 34%),
+            color-mix(in srgb, var(--ytmp-surface) 76%, transparent);
+        }
         .player[data-background="artworkGlow"]::before {
+          background:
+            radial-gradient(circle at 50% 14%, color-mix(in srgb, var(--ytmp-artwork-accent) 42%, transparent), transparent 38%),
+            linear-gradient(180deg, color-mix(in srgb, var(--ytmp-surface) 86%, transparent), var(--ytmp-surface));
+        }
+        .compact-player[data-background="artworkGlow"]::before {
           background:
             radial-gradient(circle at 50% 14%, color-mix(in srgb, var(--ytmp-artwork-accent) 42%, transparent), transparent 38%),
             linear-gradient(180deg, color-mix(in srgb, var(--ytmp-surface) 86%, transparent), var(--ytmp-surface));
@@ -339,7 +423,19 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
             var(--ytmp-surface);
           background-size: 18px 18px;
         }
+        .compact-player[data-background="grid"]::before {
+          background:
+            linear-gradient(color-mix(in srgb, var(--ytmp-artwork-accent) 16%, transparent) 1px, transparent 1px),
+            linear-gradient(90deg, color-mix(in srgb, var(--ytmp-artwork-accent) 12%, transparent) 1px, transparent 1px),
+            var(--ytmp-surface);
+          background-size: 18px 18px;
+        }
         .player[data-background="paperStack"]::before {
+          background:
+            linear-gradient(156deg, transparent 0 18%, color-mix(in srgb, var(--ytmp-artwork-accent) 18%, transparent) 18% 42%, transparent 42%),
+            var(--ytmp-surface);
+        }
+        .compact-player[data-background="paperStack"]::before {
           background:
             linear-gradient(156deg, transparent 0 18%, color-mix(in srgb, var(--ytmp-artwork-accent) 18%, transparent) 18% 42%, transparent 42%),
             var(--ytmp-surface);
@@ -350,12 +446,24 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
             radial-gradient(circle at 80% 44%, color-mix(in srgb, var(--ytmp-artwork-accent) 30%, transparent), transparent 36%),
             var(--ytmp-surface);
         }
+        .compact-player[data-background="signal"]::before {
+          background:
+            repeating-linear-gradient(90deg, color-mix(in srgb, var(--ytmp-artwork-accent) 18%, transparent) 0 1px, transparent 1px 16px),
+            radial-gradient(circle at 80% 44%, color-mix(in srgb, var(--ytmp-artwork-accent) 30%, transparent), transparent 36%),
+            var(--ytmp-surface);
+        }
         .player[data-motion="breathe"]::before {
+          animation: breathe-bg 4s ease-in-out infinite;
+        }
+        .compact-player[data-motion="breathe"]::before {
           animation: breathe-bg 4s ease-in-out infinite;
         }
         .player[data-motion="drift"]::before,
         .player[data-motion="scan"]::before,
-        .player[data-motion="wave"]::before {
+        .player[data-motion="wave"]::before,
+        .compact-player[data-motion="drift"]::before,
+        .compact-player[data-motion="scan"]::before,
+        .compact-player[data-motion="wave"]::before {
           animation: drift-bg 7s linear infinite;
         }
         .player[data-motion="float"] .art {
@@ -419,7 +527,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         }
         .theme-console .utility-controls {
           bottom: 20px;
-          grid-template-columns: 40px 40px 40px;
+          grid-template-columns: 40px 40px 40px 40px;
           margin-top: 0;
           position: absolute;
           right: 16px;
@@ -447,12 +555,12 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           width: 260px;
         }
         .theme-tile .utility-controls {
-          grid-template-columns: 38px 38px 38px;
+          grid-template-columns: 38px 38px 38px 38px;
           justify-content: center;
           margin: 10px auto 0;
           position: static;
           transform: none;
-          width: 130px;
+          width: 176px;
         }
         .theme-tile .utility-controls button {
           height: 38px;
@@ -509,11 +617,11 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           transform: none;
         }
         .theme-glass .utility-controls {
-          grid-template-columns: 42px 42px 42px;
+          grid-template-columns: 42px 42px 42px 42px;
           justify-content: center;
           margin: 10px auto 0;
           position: static;
-          width: 138px;
+          width: 184px;
         }
         .lyrics[data-placement="glass-dock"] {
           bottom: 18px;
@@ -561,7 +669,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         .theme-stack .utility-controls {
           bottom: 20px;
           display: grid;
-          grid-template-columns: 36px 36px 36px;
+          grid-template-columns: 36px 36px 36px 36px;
           gap: 6px;
           left: 14px;
           margin-top: 0;
@@ -867,11 +975,118 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
         .utility-controls {
           display: grid;
           gap: 8px;
-          grid-template-columns: 1fr 44px 44px;
+          grid-template-columns: 1fr 44px 44px 44px;
           margin-top: 8px;
         }
         .drawer-button { min-width: 0; }
         .theme-button { padding: 0; }
+        .compact-button,
+        .about-button {
+          padding: 0;
+        }
+        .compact-player {
+          align-items: center;
+          box-sizing: border-box;
+          display: grid;
+          gap: 10px;
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto 56px;
+          min-height: 100vh;
+          margin: 0;
+          padding: 14px 10px 10px;
+          place-items: center;
+          justify-content: center;
+          position: relative;
+          width: 100vw;
+          z-index: 2;
+        }
+        .compact-player[hidden] {
+          display: none;
+        }
+        .compact-title {
+          color: var(--ytmp-text-primary);
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 18px;
+          margin: 0 auto;
+          max-width: min(100%, 210px);
+          overflow: hidden;
+          text-align: center;
+          white-space: nowrap;
+          width: 100%;
+        }
+        .compact-title[hidden] {
+          display: none;
+        }
+        .compact-meta {
+          color: var(--ytmp-text-muted);
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 16px;
+          max-width: min(100%, 210px);
+          opacity: .82;
+        }
+        .compact-title span {
+          display: inline-block;
+          min-width: 0;
+          transform: translateX(0);
+          will-change: transform;
+        }
+        .compact-title[data-scroll="true"] {
+          text-align: left;
+        }
+        .compact-title[data-scroll="true"] span {
+          animation: compact-title-pan var(--compact-title-duration, 10s) ease-in-out infinite alternate;
+        }
+        .compact-controls {
+          align-items: center;
+          display: grid;
+          gap: 10px;
+          grid-template-columns: 44px 56px 44px 36px;
+          justify-content: center;
+        }
+        .compact-player button {
+          border-radius: 999px;
+          height: 44px;
+          padding: 0;
+          width: 44px;
+        }
+        .compact-player .primary {
+          height: 56px;
+          width: 56px;
+        }
+        .compact-player .full-button {
+          height: 34px;
+          opacity: .82;
+          width: 34px;
+        }
+        .compact-player.controls-console-keys button {
+          border: 1px solid color-mix(in srgb, var(--ytmp-accent) 36%, transparent);
+          border-radius: 3px;
+          box-shadow: inset 0 -2px 0 rgba(0,0,0,.24);
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        .compact-player.controls-floating-icons button,
+        .compact-player.controls-orbital button {
+          border-radius: 999px;
+        }
+        .compact-player.controls-orbital .primary {
+          transform: none;
+        }
+        .compact-player.controls-stacked button {
+          border-radius: 0;
+        }
+        .compact-player.controls-stacked button:first-child,
+        .compact-player.controls-stacked button:last-child {
+          transform: none;
+        }
+        .compact-player.controls-signal-strip {
+          border: 1px solid color-mix(in srgb, var(--ytmp-accent) 42%, transparent);
+          padding: 4px;
+        }
+        .compact-player.controls-signal-strip button {
+          border-radius: 2px;
+        }
         .drawer {
           background: var(--ytmp-surface);
           box-sizing: border-box;
@@ -1113,8 +1328,26 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           from { opacity: 0; transform: rotateX(32deg) rotateZ(-4deg) translateY(22px) scale(.96); }
           to { opacity: 1; transform: rotateX(32deg) rotateZ(-4deg) translateY(0) scale(1); }
         }
+        @keyframes compact-title-pan {
+          0%, 30% { transform: translateX(0); }
+          70%, 100% { transform: translateX(var(--compact-title-shift, 0)); }
+        }
       </style>
       <style data-role="themeStyle"></style>
+      <main class="compact-player" data-role="compactPlayer" hidden>
+        <div class="compact-title" data-role="compactTitle" aria-live="polite">
+          <span data-role="compactTitleText">YouTube Music</span>
+        </div>
+        <div class="compact-title compact-meta" data-role="compactMeta">
+          <span data-role="compactMetaText"></span>
+        </div>
+        <div class="compact-controls">
+          <button data-role="compactPrevious">Prev</button>
+          <button class="primary" data-role="compactPlayPause">Play</button>
+          <button data-role="compactNext">Next</button>
+          <button class="full-button" data-role="fullPlayer">Full</button>
+        </div>
+      </main>
       <main class="player" data-role="player">
         <section class="lyrics" data-role="lyrics" hidden aria-live="polite"></section>
         <section class="body">
@@ -1131,6 +1364,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
           <div class="utility-controls">
             <button class="drawer-button" data-role="openDrawer">♪</button>
             <button class="theme-button" data-role="openThemePicker">◐</button>
+            <button class="compact-button" data-role="openCompact">□</button>
             <button class="about-button" data-role="openAbout">i</button>
           </div>
         </section>
@@ -1172,6 +1406,15 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
       artwork: pipWindow.document.querySelector("[data-role='artwork']"),
       player: pipWindow.document.querySelector("[data-role='player']"),
       lyrics: pipWindow.document.querySelector("[data-role='lyrics']"),
+      compactPlayer: pipWindow.document.querySelector("[data-role='compactPlayer']"),
+      compactTitle: pipWindow.document.querySelector("[data-role='compactTitle']"),
+      compactTitleText: pipWindow.document.querySelector("[data-role='compactTitleText']"),
+      compactMeta: pipWindow.document.querySelector("[data-role='compactMeta']"),
+      compactMetaText: pipWindow.document.querySelector("[data-role='compactMetaText']"),
+      compactPrevious: pipWindow.document.querySelector("[data-role='compactPrevious']"),
+      compactPlayPause: pipWindow.document.querySelector("[data-role='compactPlayPause']"),
+      compactNext: pipWindow.document.querySelector("[data-role='compactNext']"),
+      fullButton: pipWindow.document.querySelector("[data-role='fullPlayer']"),
       title: pipWindow.document.querySelector("[data-role='title']"),
       artist: pipWindow.document.querySelector("[data-role='artist']"),
       progress: pipWindow.document.querySelector("[data-role='progress']"),
@@ -1183,6 +1426,7 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
       emptyHint: pipWindow.document.querySelector("[data-role='emptyHint']"),
       drawerButton: pipWindow.document.querySelector("[data-role='openDrawer']"),
       themeButton: pipWindow.document.querySelector("[data-role='openThemePicker']"),
+      compactButton: pipWindow.document.querySelector("[data-role='openCompact']"),
       aboutButton: pipWindow.document.querySelector("[data-role='openAbout']"),
       drawer: pipWindow.document.querySelector("[data-role='drawer']"),
       closeDrawer: pipWindow.document.querySelector("[data-role='closeDrawer']"),
@@ -1198,6 +1442,9 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     pipWindow.document.querySelector("[data-role='previous']").addEventListener("click", onPrevious);
     pipWindow.document.querySelector("[data-role='playPause']").addEventListener("click", onPlayPause);
     pipWindow.document.querySelector("[data-role='next']").addEventListener("click", onNext);
+    pipWindow.document.querySelector("[data-role='compactPrevious']").addEventListener("click", onPrevious);
+    pipWindow.document.querySelector("[data-role='compactPlayPause']").addEventListener("click", onPlayPause);
+    pipWindow.document.querySelector("[data-role='compactNext']").addEventListener("click", onNext);
     pipWindow.document.querySelector("[data-role='openDrawer']").addEventListener("click", () => {
       isDrawerOpen = true;
       isThemePickerOpen = false;
@@ -1216,6 +1463,19 @@ export function createPipController({ getState, onPlayPause, onPrevious, onNext,
     });
     pipWindow.document.querySelector("[data-role='closeThemePicker']").addEventListener("click", () => {
       isThemePickerOpen = false;
+      update();
+    });
+    pipWindow.document.querySelector("[data-role='openCompact']").addEventListener("click", () => {
+      isCompact = true;
+      isDrawerOpen = false;
+      isThemePickerOpen = false;
+      isAboutOpen = false;
+      applyPreferredWindowSize(currentTheme);
+      update();
+    });
+    pipWindow.document.querySelector("[data-role='fullPlayer']").addEventListener("click", () => {
+      isCompact = false;
+      applyPreferredWindowSize(currentTheme);
       update();
     });
     pipWindow.document.querySelector("[data-role='openAbout']").addEventListener("click", () => {
